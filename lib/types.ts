@@ -1,4 +1,4 @@
-export type UserRole = 'foh' | 'kitchen' | 'manager'
+export type UserRole = 'foh' | 'kitchen' | 'manager' | 'register'
 export type OrderStatus = 'pending' | 'ready' | 'delivered' | 'cancelled'
 
 /** PostgREST serializes Postgres `numeric` columns as strings. Call parseFloat() or Number() before arithmetic. */
@@ -29,6 +29,7 @@ export interface Dish {
   branch_id: string
   name_vi: string
   name_en: string | null
+  price: number | string
   is_active: boolean
   created_at: string
 }
@@ -56,6 +57,7 @@ export interface Order {
   created_by: string | null
   created_at: string
   ready_at: string | null
+  paid_at: string | null
 }
 
 export interface OrderItem {
@@ -63,6 +65,7 @@ export interface OrderItem {
   order_id: string
   dish_id: string
   qty: number
+  price_at_order: number | string
 }
 
 export interface UserProfile {
