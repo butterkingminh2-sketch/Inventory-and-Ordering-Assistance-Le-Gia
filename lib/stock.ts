@@ -16,7 +16,11 @@ export function calculateDecrements(
 
   for (const { dish_id, qty } of orderItems) {
     for (const line of recipeLines.filter(r => r.dish_id === dish_id)) {
-      totals[line.item_id] = (totals[line.item_id] ?? 0) + num(line.qty_per_serving) * qty
+      const qtyPerServing = num(line.qty_per_serving)
+      if (!Number.isFinite(qtyPerServing) || qtyPerServing <= 0) {
+        throw new Error(`Invalid qty_per_serving for recipe line ${line.id}: ${line.qty_per_serving}`)
+      }
+      totals[line.item_id] = (totals[line.item_id] ?? 0) + qtyPerServing * qty
     }
   }
 
