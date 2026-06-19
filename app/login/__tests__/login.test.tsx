@@ -7,12 +7,12 @@ vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
     auth: {
       signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
-      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } }),
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } }, error: null }),
     },
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: { role: 'foh' } }),
+      single: vi.fn().mockResolvedValue({ data: { role: 'foh' }, error: null }),
     }),
   }),
 }))

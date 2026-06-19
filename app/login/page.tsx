@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -10,7 +10,7 @@ export default function LoginPage() {
   const [error, setError]       = useState<string | null>(null)
   const [loading, setLoading]   = useState(false)
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -26,17 +26,31 @@ export default function LoginPage() {
     }
 
     // Fetch role to determine redirect target
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', user!.id)
-      .single()
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        setError('Không thể xác thực. Vui lòng thử lại.')
+        setLoading(false)
+        return
+      }
 
-    if (profile?.role === 'kitchen') {
-      router.push('/kitchen')
-    } else {
-      router.push('/kho')
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError || !profile) {
+        setError('Không tìm thấy tài khoản. Liên hệ quản lý.')
+        setLoading(false)
+        return
+      }
+
+      router.push(profile.role === 'kitchen' ? '/kitchen' : '/kho')
+    } catch {
+      setError('Đã xảy ra lỗi. Vui lòng thử lại.')
+    } finally {
+      setLoading(false)
     }
   }
 
