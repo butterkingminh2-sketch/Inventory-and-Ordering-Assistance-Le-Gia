@@ -46,7 +46,11 @@ export default function LoginPage() {
         return
       }
 
-      router.push(profile.role === 'kitchen' ? '/kitchen' : '/kho')
+      const target =
+        profile.role === 'kitchen'  ? '/kitchen' :
+        profile.role === 'register' ? '/register' :
+        '/kho'
+      router.push(target)
     } catch {
       setError('Đã xảy ra lỗi. Vui lòng thử lại.')
     } finally {

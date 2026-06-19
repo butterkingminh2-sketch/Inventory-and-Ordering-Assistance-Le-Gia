@@ -15,6 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!profile) redirect('/login')
   if (profile.role === 'kitchen') redirect('/kitchen')
+  if (profile.role === 'register') redirect('/register')
 
   return (
     <AppShell role={profile.role} defaultBranchId={profile.branch_id}>
