@@ -18,7 +18,7 @@ export default function SettingsPage() {
   const [tables, setTables]   = useState<Table[]>([])
 
   const [newItem,  setNewItem]  = useState({ name_vi: '', name_en: '', unit: '', low_threshold: 3 })
-  const [newDish,  setNewDish]  = useState({ name_vi: '', name_en: '' })
+  const [newDish,  setNewDish]  = useState({ name_vi: '', name_en: '', price: 0 })
   const [newLine,  setNewLine]  = useState({ item_id: '', qty_per_serving: 1 })
   const [newTable, setNewTable] = useState({ label: '', section: '' })
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null)
@@ -60,8 +60,14 @@ export default function SettingsPage() {
     if (!newDish.name_vi.trim()) return
     const { data } = await supabase.from('dishes')
       .insert({ ...newDish, branch_id: branchId }).select().single()
-    if (data) { setDishes(p => [...p, data]); setNewDish({ name_vi: '', name_en: '' }) }
+    if (data) { setDishes(p => [...p, data]); setNewDish({ name_vi: '', name_en: '', price: 0 }) }
   }
+
+  async function updateDishPrice(id: string, price: number) {
+    await supabase.from('dishes').update({ price }).eq('id', id)
+    setDishes(p => p.map(d => d.id === id ? { ...d, price } : d))
+  }
+
   async function deactivateDish(id: string) {
     await supabase.from('dishes').update({ is_active: false }).eq('id', id)
     setDishes(p => p.map(d => d.id === id ? { ...d, is_active: false } : d))
@@ -194,6 +200,9 @@ export default function SettingsPage() {
             <input placeholder="Name (EN)" value={newDish.name_en}
               onChange={e => setNewDish(p => ({ ...p, name_en: e.target.value }))}
               className={`flex-1 ${inputCls}`} />
+            <input type="number" placeholder="Giá (đ)" value={newDish.price}
+              onChange={e => setNewDish(p => ({ ...p, price: +e.target.value }))}
+              className={`w-28 ${inputCls}`} />
             <button onClick={addDish} className={btnPrimary}>+ Thêm</button>
           </div>
           <ul className="divide-y divide-outline-variant">
@@ -204,6 +213,9 @@ export default function SettingsPage() {
                   {dish.name_en && <p className="text-label-en text-on-surface-variant">{dish.name_en}</p>}
                 </div>
                 <div className="flex items-center gap-3">
+                  <input type="number" value={Number(dish.price)}
+                    onChange={e => updateDishPrice(dish.id, +e.target.value)}
+                    className="border border-outline-variant rounded px-2 py-1 w-24 text-label-en" />
                   <span className={dish.is_active ? badgeActive : badgeInactive}>
                     {dish.is_active ? 'Hoạt động' : 'Tắt'}
                   </span>
