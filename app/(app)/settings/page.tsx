@@ -200,8 +200,8 @@ export default function SettingsPage() {
             <input placeholder="Name (EN)" value={newDish.name_en}
               onChange={e => setNewDish(p => ({ ...p, name_en: e.target.value }))}
               className={`flex-1 ${inputCls}`} />
-            <input type="number" placeholder="Giá (đ)" value={newDish.price}
-              onChange={e => setNewDish(p => ({ ...p, price: +e.target.value }))}
+            <input type="number" placeholder="Giá (đ)" value={newDish.price} min={0}
+              onChange={e => setNewDish(p => ({ ...p, price: +e.target.value || 0 }))}
               className={`w-28 ${inputCls}`} />
             <button onClick={addDish} className={btnPrimary}>+ Thêm</button>
           </div>
@@ -213,8 +213,8 @@ export default function SettingsPage() {
                   {dish.name_en && <p className="text-label-en text-on-surface-variant">{dish.name_en}</p>}
                 </div>
                 <div className="flex items-center gap-3">
-                  <input type="number" value={Number(dish.price)}
-                    onChange={e => updateDishPrice(dish.id, +e.target.value)}
+                  <input type="number" value={Number(dish.price)} min={0}
+                    onChange={e => updateDishPrice(dish.id, +e.target.value || 0)}
                     className="border border-outline-variant rounded px-2 py-1 w-24 text-label-en" />
                   <span className={dish.is_active ? badgeActive : badgeInactive}>
                     {dish.is_active ? 'Hoạt động' : 'Tắt'}
