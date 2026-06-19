@@ -37,13 +37,17 @@ export default function RegisterPage() {
   }, [])
 
   const fetchBills = useCallback(async (bid: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('orders')
       .select(`*, table:tables(label), order_items(*, dish:dishes(name_vi, name_en))`)
       .eq('branch_id', bid)
       .is('paid_at', null)
       .neq('status', 'cancelled')
       .order('created_at', { ascending: true })
+    if (error) {
+      setErrorMsg('Không thể tải danh sách bàn. Vui lòng thử lại.')
+      return
+    }
     if (data) setBills(groupOrdersByTable(data as OrderWithDetails[]))
   }, [supabase])
 
@@ -78,12 +82,12 @@ export default function RegisterPage() {
     const { data, error } = await supabase
       .from('orders')
       .update({ paid_at: new Date().toISOString() })
-      .eq('table_id', selectedBill.tableId)
+      .in('id', selectedBill.orderIds)
       .eq('branch_id', branchId)
       .is('paid_at', null)
       .select('id')
 
-    if (error || !data || data.length === 0) {
+    if (error || !data || data.length !== selectedBill.orderIds.length) {
       setErrorMsg('Bàn này đã được thanh toán hoặc có lỗi xảy ra. Vui lòng thử lại.')
       setStep('list')
       setSelectedBill(null)
