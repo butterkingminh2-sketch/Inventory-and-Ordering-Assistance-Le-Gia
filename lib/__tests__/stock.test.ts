@@ -1,4 +1,4 @@
-import { calculateDecrements } from '../stock'
+import { calculateDecrements, buildReversal } from '../stock'
 
 const recipes = [
   { id: 'r1', dish_id: 'dish-special', item_id: 'item-gio',    qty_per_serving: 2 },
@@ -62,5 +62,45 @@ describe('calculateDecrements', () => {
       { item_id: 'item-gio', delta: 2 },
       { item_id: 'item-moc', delta: 1 },
     ]))
+  })
+})
+
+describe('buildReversal', () => {
+  it('negates a single logged delta', () => {
+    const result = buildReversal([{ item_id: 'item-gio', delta: -2 }])
+    expect(result).toEqual([{ item_id: 'item-gio', delta: 2 }])
+  })
+
+  it('sums multiple log rows for the same item before negating', () => {
+    const result = buildReversal([
+      { item_id: 'item-gio', delta: -2 },
+      { item_id: 'item-gio', delta: -1 },
+    ])
+    expect(result).toEqual([{ item_id: 'item-gio', delta: 3 }])
+  })
+
+  it('reverses by the realized (floored) delta, not a theoretical one', () => {
+    // Order requested -60 but only -5 was actually available, so the log
+    // records the realized change (-5). Reversal must undo exactly that,
+    // not recompute -60 from the recipe again.
+    const result = buildReversal([{ item_id: 'item-bun', delta: -5 }])
+    expect(result).toEqual([{ item_id: 'item-bun', delta: 5 }])
+  })
+
+  it('handles string deltas from Postgres numeric columns', () => {
+    const result = buildReversal([{ item_id: 'item-gio', delta: '-2.50' }])
+    expect(result).toEqual([{ item_id: 'item-gio', delta: 2.5 }])
+  })
+
+  it('handles multiple distinct items independently', () => {
+    const result = buildReversal([
+      { item_id: 'item-gio', delta: -2 },
+      { item_id: 'item-moc', delta: -1 },
+    ])
+    expect(result).toEqual(expect.arrayContaining([
+      { item_id: 'item-gio', delta: 2 },
+      { item_id: 'item-moc', delta: 1 },
+    ]))
+    expect(result).toHaveLength(2)
   })
 })

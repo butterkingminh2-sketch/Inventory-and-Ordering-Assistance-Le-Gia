@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { DishRow } from '@/components/dish-row'
 import { BranchContext } from '../app-shell'
-import { getDishStatus } from '@/lib/dish-availability'
+import { getDishStatus, getMaxOrderableQty } from '@/lib/dish-availability'
 import { calculateDecrements, applyStockChange } from '@/lib/stock'
 import { num } from '@/lib/types'
 import type { Dish, Item, RecipeLine, Table } from '@/lib/types'
@@ -53,16 +53,20 @@ export default function DatMonPage() {
     ? tables.filter(t => t.section === selectedSection)
     : tables
 
-  function adjustQty(dishId: string, delta: 1 | -1) {
-    setQuantities(prev => ({
-      ...prev,
-      [dishId]: Math.max(0, (prev[dishId] ?? 0) + delta),
-    }))
+  function adjustQty(dishId: string, delta: 1 | -1, options?: { bypassCap?: boolean }) {
+    setQuantities(prev => {
+      const current = prev[dishId] ?? 0
+      if (delta === 1 && !options?.bypassCap) {
+        const maxQty = getMaxOrderableQty(dishId, recipes, items, prev)
+        if (current >= maxQty) return prev
+      }
+      return { ...prev, [dishId]: Math.max(0, current + delta) }
+    })
   }
 
   function handleAddUnavailable(dishId: string) {
     if (window.confirm('Món này hiện không đủ nguyên liệu. Vẫn muốn đặt?')) {
-      adjustQty(dishId, 1)
+      adjustQty(dishId, 1, { bypassCap: true })
     }
   }
 
@@ -98,7 +102,7 @@ export default function DatMonPage() {
     )
 
     const decrements = calculateDecrements(orderLines, recipes)
-    const { floored } = await applyStockChange(decrements, 'order', user.id)
+    const { floored } = await applyStockChange(decrements, 'order', user.id, order.id)
 
     setSubmitting(false)
     setQuantities({})
@@ -174,12 +178,15 @@ export default function DatMonPage() {
             {dishes.map(dish => {
               const status = getDishStatus(dish.id, recipes, items)
               const qty = quantities[dish.id] ?? 0
+              const maxQty = getMaxOrderableQty(dish.id, recipes, items, quantities)
+              const atMax = status !== 'unavailable' && qty >= maxQty
               return (
                 <DishRow
                   key={dish.id}
                   dish={dish}
                   status={status}
                   qty={qty}
+                  atMax={atMax}
                   onAdd={() => status === 'unavailable' ? handleAddUnavailable(dish.id) : adjustQty(dish.id, 1)}
                   onRemove={() => adjustQty(dish.id, -1)}
                 />

@@ -88,6 +88,7 @@ export interface StockLog {
   reason: string
   created_by: string | null
   created_at: string
+  order_id: string | null
 }
 
 export type StockChangeResult = { floored: string[] }

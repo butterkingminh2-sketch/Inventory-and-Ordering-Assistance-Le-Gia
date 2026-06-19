@@ -4,7 +4,7 @@ import { useEffect, useState, useContext, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { OrderCard } from '@/components/order-card'
 import { BranchContext } from '../app-shell'
-import { calculateDecrements, applyStockChange } from '@/lib/stock'
+import { reverseOrderStock } from '@/lib/stock'
 import type { OrderWithDetails } from '@/lib/types'
 
 export default function DangChayPage() {
@@ -51,13 +51,7 @@ export default function DangChayPage() {
     if (!user) return
 
     await supabase.from('orders').update({ status: 'cancelled' }).eq('id', orderId)
-
-    const orderLines = order.order_items.map(oi => ({ dish_id: oi.dish_id, qty: oi.qty }))
-    const { data: recipes } = await supabase.from('recipe_lines').select('*')
-    if (recipes && orderLines.length > 0) {
-      const reversals = calculateDecrements(orderLines, recipes, true)
-      await applyStockChange(reversals, 'cancellation', user.id)
-    }
+    await reverseOrderStock(orderId, user.id)
   }
 
   async function handleDeliver(orderId: string) {

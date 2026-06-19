@@ -35,7 +35,8 @@ export function calculateDecrements(
 export async function applyStockChange(
   changes: StockChange[],
   reason: 'order' | 'manual_correction' | 'cancellation',
-  userId: string
+  userId: string,
+  orderId?: string
 ): Promise<StockChangeResult> {
   const { createClient } = await import('./supabase/client')
   const supabase = createClient()
@@ -43,7 +44,46 @@ export async function applyStockChange(
     p_changes:  changes,
     p_reason:   reason,
     p_user_id:  userId,
+    p_order_id: orderId ?? null,
   })
   if (error) throw error
   return data as StockChangeResult
+}
+
+export interface StockLogEntry {
+  item_id: string
+  delta: number | string
+}
+
+/**
+ * Pure function — no DB calls. Negates and sums logged deltas per item.
+ * Reverses the REALIZED change recorded in stock_logs (what actually happened,
+ * including any floor-at-zero clamping), never a theoretical recipe recomputation —
+ * otherwise an order that floored an ingredient gets over-credited on cancellation.
+ */
+export function buildReversal(logs: StockLogEntry[]): StockChange[] {
+  const totals: Record<string, number> = {}
+  for (const log of logs) {
+    totals[log.item_id] = (totals[log.item_id] ?? 0) + num(log.delta)
+  }
+  return Object.entries(totals).map(([item_id, amount]) => ({
+    item_id,
+    delta: -amount,
+  }))
+}
+
+/** Reverses the realized stock_logs rows for an order's 'order' deduction. */
+export async function reverseOrderStock(orderId: string, userId: string): Promise<StockChangeResult> {
+  const { createClient } = await import('./supabase/client')
+  const supabase = createClient()
+  const { data: logs, error } = await supabase
+    .from('stock_logs')
+    .select('item_id, delta')
+    .eq('order_id', orderId)
+    .eq('reason', 'order')
+  if (error) throw error
+  if (!logs || logs.length === 0) return { floored: [] }
+
+  const reversal = buildReversal(logs)
+  return applyStockChange(reversal, 'cancellation', userId, orderId)
 }

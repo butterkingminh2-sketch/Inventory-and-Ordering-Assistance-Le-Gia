@@ -7,11 +7,12 @@ interface Props {
   dish: Dish
   status: DishStatus
   qty: number
+  atMax: boolean
   onAdd: () => void
   onRemove: () => void
 }
 
-export function DishRow({ dish, status, qty, onAdd, onRemove }: Props) {
+export function DishRow({ dish, status, qty, atMax, onAdd, onRemove }: Props) {
   const unavailable = status === 'unavailable'
 
   return (
@@ -26,6 +27,9 @@ export function DishRow({ dish, status, qty, onAdd, onRemove }: Props) {
         )}
         {status === 'unavailable' && (
           <p className="text-label-en font-bold text-error mt-0.5">Hết nguyên liệu</p>
+        )}
+        {!unavailable && atMax && (
+          <p className="text-label-en font-bold text-tertiary mt-0.5">Đã đạt giới hạn kho</p>
         )}
       </div>
 
@@ -44,7 +48,10 @@ export function DishRow({ dish, status, qty, onAdd, onRemove }: Props) {
         )}
         <button
           onClick={onAdd}
-          className="w-touch-target-min h-touch-target-min rounded-lg bg-primary text-on-primary shadow-md text-xl font-bold flex items-center justify-center"
+          disabled={atMax}
+          className={`w-touch-target-min h-touch-target-min rounded-lg shadow-md text-xl font-bold flex items-center justify-center ${
+            atMax ? 'bg-surface-container-high text-on-surface-variant opacity-50 cursor-not-allowed' : 'bg-primary text-on-primary'
+          }`}
           aria-label={`Thêm ${dish.name_vi}`}
         >
           +
