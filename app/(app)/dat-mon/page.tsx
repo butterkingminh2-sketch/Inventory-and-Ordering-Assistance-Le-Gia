@@ -7,6 +7,7 @@ import { DishRow } from '@/components/dish-row'
 import { BranchContext } from '../app-shell'
 import { getDishStatus } from '@/lib/dish-availability'
 import { calculateDecrements, applyStockChange } from '@/lib/stock'
+import { num } from '@/lib/types'
 import type { Dish, Item, RecipeLine, Table } from '@/lib/types'
 
 type Step = 'table' | 'dishes' | 'review'
@@ -85,7 +86,15 @@ export default function DatMonPage() {
     if (orderError || !order) { setSubmitting(false); return }
 
     await supabase.from('order_items').insert(
-      orderLines.map(l => ({ order_id: order.id, dish_id: l.dish_id, qty: l.qty }))
+      orderLines.map(l => {
+        const dish = dishes.find(d => d.id === l.dish_id)
+        return {
+          order_id: order.id,
+          dish_id: l.dish_id,
+          qty: l.qty,
+          price_at_order: dish ? num(dish.price) : 0,
+        }
+      })
     )
 
     const decrements = calculateDecrements(orderLines, recipes)
