@@ -87,12 +87,12 @@ export default function DatMonPage() {
 
     await supabase.from('order_items').insert(
       orderLines.map(l => {
-        const dish = dishes.find(d => d.id === l.dish_id)
+        const dish = dishes.find(d => d.id === l.dish_id)!
         return {
           order_id: order.id,
           dish_id: l.dish_id,
           qty: l.qty,
-          price_at_order: dish ? num(dish.price) : 0,
+          price_at_order: num(dish.price),
         }
       })
     )
