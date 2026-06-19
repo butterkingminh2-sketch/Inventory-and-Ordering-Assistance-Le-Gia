@@ -16,31 +16,41 @@ export default function DatMonPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  const [tables, setTables]   = useState<Table[]>([])
-  const [dishes, setDishes]   = useState<Dish[]>([])
-  const [items, setItems]     = useState<Item[]>([])
-  const [recipes, setRecipes] = useState<RecipeLine[]>([])
-  const [selectedTable, setSelectedTable] = useState<string | null>(null)
-  const [quantities, setQuantities] = useState<Record<string, number>>({})
-  const [step, setStep]       = useState<Step>('table')
-  const [submitting, setSubmitting] = useState(false)
-  const [toast, setToast]     = useState<string | null>(null)
+  const [tables, setTables]           = useState<Table[]>([])
+  const [dishes, setDishes]           = useState<Dish[]>([])
+  const [items, setItems]             = useState<Item[]>([])
+  const [recipes, setRecipes]         = useState<RecipeLine[]>([])
+  const [selectedTable, setSelectedTable]   = useState<string | null>(null)
+  const [selectedSection, setSelectedSection] = useState<string | null>(null)
+  const [quantities, setQuantities]   = useState<Record<string, number>>({})
+  const [step, setStep]               = useState<Step>('table')
+  const [submitting, setSubmitting]   = useState(false)
+  const [toast, setToast]             = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
       const [t, d, i, r] = await Promise.all([
-        supabase.from('tables').select('*').eq('branch_id', branchId).eq('is_active', true).order('label'),
+        supabase.from('tables').select('*').eq('branch_id', branchId).eq('is_active', true).order('section').order('label'),
         supabase.from('dishes').select('*').eq('branch_id', branchId).eq('is_active', true).order('name_vi'),
         supabase.from('items').select('*').eq('branch_id', branchId).eq('is_active', true),
         supabase.from('recipe_lines').select('*'),
       ])
-      if (t.data) setTables(t.data)
+      if (t.data) {
+        setTables(t.data)
+        const secs = [...new Set(t.data.map(tbl => tbl.section).filter((s): s is string => s !== null))]
+        setSelectedSection(secs.length > 1 ? secs[0] : null)
+      }
       if (d.data) setDishes(d.data)
       if (i.data) setItems(i.data)
       if (r.data) setRecipes(r.data)
     }
     load()
   }, [branchId])
+
+  const sections = [...new Set(tables.map(t => t.section).filter((s): s is string => s !== null))]
+  const visibleTables = sections.length > 1 && selectedSection
+    ? tables.filter(t => t.section === selectedSection)
+    : tables
 
   function adjustQty(dishId: string, delta: 1 | -1) {
     setQuantities(prev => ({
@@ -108,8 +118,27 @@ export default function DatMonPage() {
             Chọn bàn
             <span className="block text-label-en font-normal text-on-surface-variant">Select table</span>
           </h2>
+
+          {sections.length > 1 && (
+            <div className="flex gap-2 mb-stack-lg overflow-x-auto pb-1">
+              {sections.map(s => (
+                <button
+                  key={s}
+                  onClick={() => setSelectedSection(s)}
+                  className={`px-4 rounded-full text-label-vi font-bold whitespace-nowrap min-h-touch-target-min transition-colors ${
+                    selectedSection === s
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-            {tables.map(t => (
+            {visibleTables.map(t => (
               <button
                 key={t.id}
                 onClick={() => { setSelectedTable(t.id); setStep('dishes') }}

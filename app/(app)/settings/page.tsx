@@ -20,7 +20,7 @@ export default function SettingsPage() {
   const [newItem,  setNewItem]  = useState({ name_vi: '', name_en: '', unit: '', low_threshold: 3 })
   const [newDish,  setNewDish]  = useState({ name_vi: '', name_en: '' })
   const [newLine,  setNewLine]  = useState({ item_id: '', qty_per_serving: 1 })
-  const [newTable, setNewTable] = useState({ label: '' })
+  const [newTable, setNewTable] = useState({ label: '', section: '' })
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -88,8 +88,8 @@ export default function SettingsPage() {
   async function addTable() {
     if (!newTable.label.trim()) return
     const { data } = await supabase.from('tables')
-      .insert({ label: newTable.label, branch_id: branchId }).select().single()
-    if (data) { setTables(p => [...p, data]); setNewTable({ label: '' }) }
+      .insert({ label: newTable.label, section: newTable.section || null, branch_id: branchId }).select().single()
+    if (data) { setTables(p => [...p, data]); setNewTable({ label: '', section: '' }) }
   }
   async function deactivateTable(id: string) {
     await supabase.from('tables').update({ is_active: false }).eq('id', id)
@@ -268,8 +268,11 @@ export default function SettingsPage() {
         <div className="space-y-stack-lg">
           <div className="flex gap-2">
             <input placeholder="Tên bàn (Bàn 1, Mang về...)" value={newTable.label}
-              onChange={e => setNewTable({ label: e.target.value })}
+              onChange={e => setNewTable(p => ({ ...p, label: e.target.value }))}
               className={`flex-1 ${inputCls}`} />
+            <input placeholder="Khu vực (Tầng 1...)" value={newTable.section}
+              onChange={e => setNewTable(p => ({ ...p, section: e.target.value }))}
+              className={`w-32 ${inputCls}`} />
             <button onClick={addTable} className={btnPrimary}>+ Thêm</button>
           </div>
           <ul className="divide-y divide-outline-variant">

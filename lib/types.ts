@@ -44,6 +44,7 @@ export interface Table {
   id: string
   branch_id: string
   label: string
+  section: string | null
   is_active: boolean
 }
 

@@ -78,7 +78,7 @@ export function AppShell({ role, defaultBranchId, children }: Props) {
       </aside>
 
       {/* Main content */}
-      <main className="pt-touch-target-min md:ml-64 p-margin-mobile md:p-margin-tablet lg:p-margin-desktop pb-touch-target-min md:pb-0">
+      <main className="mt-touch-target-min md:ml-64 p-margin-mobile md:p-margin-tablet lg:p-margin-desktop pb-touch-target-min md:pb-0">
         {children}
       </main>
 

@@ -19,7 +19,7 @@ export function BranchSelector({ branchId, onBranchChange }: Props) {
     })
   }, [])
 
-  if (branches.length === 0) return null
+  if (branches.length <= 1) return null
 
   return (
     <select

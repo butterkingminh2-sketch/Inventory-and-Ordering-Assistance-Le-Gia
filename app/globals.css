@@ -75,6 +75,16 @@
   --spacing-margin-mobile:    16px;
   --spacing-margin-tablet:    24px;
   --spacing-margin-desktop:   32px;
+
+  /* Typography scale — matches DESIGN.md fontSize definitions */
+  --text-headline-lg:         32px;
+  --text-headline-lg-mobile:  24px;
+  --text-headline-md:         24px;
+  --text-body-lg:             18px;
+  --text-body-md:             16px;
+  --text-label-vi:            14px;
+  --text-label-en:            12px;
+  --text-status-badge:        13px;
 }
 
 @layer base {
