@@ -27,6 +27,8 @@ export default function DangChayPage() {
   }, [branchId])
 
   useEffect(() => {
+    // Initial fetch on mount/branch change — async, not a synchronous setState call.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadOrders()
 
     const channel = supabase

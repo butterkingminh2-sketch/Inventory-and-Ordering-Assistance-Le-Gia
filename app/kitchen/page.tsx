@@ -33,6 +33,8 @@ export default function KitchenPage() {
 
   useEffect(() => {
     if (!branchId) return
+    // Initial fetch on mount/branch change — async, not a synchronous setState call.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadOrders(branchId)
 
     const channel = supabase
@@ -65,9 +67,16 @@ export default function KitchenPage() {
   return (
     <div className="space-y-stack-lg max-w-2xl mx-auto">
       {orders.map(order => (
-        <article
+        <div
           key={order.id}
-          className="rounded-xl border border-outline-variant bg-surface-container-lowest overflow-hidden shadow-sm"
+          role="button"
+          tabIndex={0}
+          aria-label={`Đánh dấu xong — ${order.table.label}`}
+          onClick={() => handleXong(order.id)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleXong(order.id) }
+          }}
+          className="rounded-xl border border-outline-variant bg-surface-container-lowest overflow-hidden shadow-sm cursor-pointer select-none active:scale-[0.98] transition-transform"
         >
           <div className="p-stack-lg space-y-2">
             <div className="flex items-center justify-between">
@@ -88,14 +97,11 @@ export default function KitchenPage() {
             </ul>
           </div>
 
-          <button
-            onClick={() => handleXong(order.id)}
-            className="w-full min-h-touch-target-min bg-secondary text-on-secondary text-label-vi font-bold flex items-center justify-center gap-2 hover:bg-on-secondary-container transition-all active:scale-95"
-          >
+          <div className="w-full min-h-touch-target-min bg-secondary text-on-secondary text-label-vi font-bold flex items-center justify-center gap-2">
             <span className="material-symbols-outlined text-[24px]" aria-hidden>check_circle</span>
-            Xong ✓
-          </button>
-        </article>
+            Xong ✓ — chạm bất kỳ đâu trên thẻ
+          </div>
+        </div>
       ))}
     </div>
   )
