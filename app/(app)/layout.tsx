@@ -9,7 +9,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('role, branch_id')
+    .select('role, branch_id, full_name')
     .eq('id', user.id)
     .single()
 
@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (profile.role === 'register') redirect('/register')
 
   return (
-    <AppShell role={profile.role} defaultBranchId={profile.branch_id}>
+    <AppShell role={profile.role} defaultBranchId={profile.branch_id} fullName={profile.full_name}>
       {children}
     </AppShell>
   )

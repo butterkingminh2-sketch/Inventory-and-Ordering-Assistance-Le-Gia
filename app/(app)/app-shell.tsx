@@ -4,8 +4,8 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { SidebarNav } from '@/components/sidebar-nav'
 import { BottomNav } from '@/components/bottom-nav'
-import { BranchSelector } from '@/components/branch-selector'
-import type { UserRole } from '@/lib/types'
+import { AccountMenu } from '@/components/account-menu'
+import type { Branch, UserRole } from '@/lib/types'
 
 interface BranchContextValue {
   branchId: string
@@ -24,13 +24,21 @@ export function useBranch() {
 interface Props {
   role: UserRole
   defaultBranchId: string
+  fullName: string | null
   children: React.ReactNode
 }
 
-export function AppShell({ role, defaultBranchId, children }: Props) {
+export function AppShell({ role, defaultBranchId, fullName, children }: Props) {
   const [branchId, setBranchId] = useState(defaultBranchId)
+  const [branches, setBranches] = useState<Branch[]>([])
   const [readyCount, setReadyCount] = useState(0)
   const supabase = createClient()
+
+  useEffect(() => {
+    supabase.from('branches').select('*').order('name').then(({ data }) => {
+      if (data) setBranches(data)
+    })
+  }, [])
 
   useEffect(() => {
     async function fetchCount() {
@@ -56,20 +64,27 @@ export function AppShell({ role, defaultBranchId, children }: Props) {
     return () => { supabase.removeChannel(channel) }
   }, [branchId])
 
+  const currentBranchName = branches.find(b => b.id === branchId)?.name
+
   return (
     <BranchContext.Provider value={{ branchId, setBranchId }}>
       {/* Top header */}
       <header className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-gutter min-h-touch-target-min bg-surface border-b border-outline-variant">
-        <BranchSelector branchId={branchId} onBranchChange={setBranchId} />
-        {role === 'manager' && (
-          <a
-            href="/settings"
-            className="material-symbols-outlined text-[22px] text-on-surface-variant hover:text-on-surface transition-colors min-h-touch-target-min flex items-center"
-            aria-label="Cài đặt"
-          >
-            settings
-          </a>
+        {role === 'manager' && currentBranchName && (
+          <span className="text-label-vi font-bold text-on-surface px-1">{currentBranchName}</span>
         )}
+
+        <div className="flex items-center gap-3 ml-auto">
+          <span className="material-symbols-outlined text-[22px] text-on-surface-variant" aria-hidden>
+            chat
+          </span>
+          <AccountMenu
+            fullName={fullName}
+            role={role}
+            branchId={role === 'manager' ? branchId : undefined}
+            onBranchChange={role === 'manager' ? setBranchId : undefined}
+          />
+        </div>
       </header>
 
       {/* Sidebar (tablet+) */}
