@@ -20,11 +20,16 @@ interface Props {
 export function SidebarNav({ role, readyCount }: Props) {
   const pathname = usePathname()
 
-  const tabs: Tab[] = [
-    { href: '/kho',       labelVi: 'Kho',       labelEn: 'Inventory',    icon: 'inventory_2' },
-    { href: '/dat-mon',   labelVi: 'Đặt món',   labelEn: 'Place Order',  icon: 'add_shopping_cart' },
-    { href: '/dang-chay', labelVi: 'Đang chạy', labelEn: 'Active Orders', icon: 'receipt_long', badge: readyCount },
-  ]
+  const tabs: Tab[] = role === 'foh'
+    ? [
+        { href: '/dat-mon',   labelVi: 'Đặt món',   labelEn: 'Place Order',  icon: 'add_shopping_cart' },
+        { href: '/dang-chay', labelVi: 'Đang chạy', labelEn: 'Active Orders', icon: 'receipt_long', badge: readyCount },
+      ]
+    : [
+        { href: '/kho',       labelVi: 'Kho',       labelEn: 'Inventory',    icon: 'inventory_2' },
+        { href: '/dat-mon',   labelVi: 'Đặt món',   labelEn: 'Place Order',  icon: 'add_shopping_cart' },
+        { href: '/dang-chay', labelVi: 'Đang chạy', labelEn: 'Active Orders', icon: 'receipt_long', badge: readyCount },
+      ]
 
   if (role === 'manager') {
     tabs.push({ href: '/register', labelVi: 'Thu ngân', labelEn: 'Register', icon: 'point_of_sale' })

@@ -13,7 +13,7 @@ export function BottomNav({ role, readyCount }: Props) {
   const pathname = usePathname()
 
   const tabs = [
-    { href: '/kho',       labelVi: 'Kho',       icon: 'inventory_2' },
+    ...(role === 'foh' ? [] : [{ href: '/kho', labelVi: 'Kho', icon: 'inventory_2' }]),
     { href: '/dat-mon',   labelVi: 'Đặt món',   icon: 'add_shopping_cart' },
     { href: '/dang-chay', labelVi: 'Đang chạy', icon: 'receipt_long', badge: readyCount },
     ...(role === 'manager' ? [{ href: '/settings', labelVi: 'Cài đặt', icon: 'settings' }] : []),
