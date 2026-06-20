@@ -30,6 +30,8 @@ export interface Dish {
   name_vi: string
   name_en: string | null
   price: number | string
+  category: string | null
+  image_url: string | null
   is_active: boolean
   created_at: string
 }
