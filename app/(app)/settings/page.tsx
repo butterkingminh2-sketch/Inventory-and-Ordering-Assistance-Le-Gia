@@ -3,7 +3,9 @@
 import { useEffect, useState, useContext } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { BranchContext } from '../app-shell'
-import type { Item, Dish, RecipeLine, Table } from '@/lib/types'
+import type { Item, Dish, RecipeLine, Table, ItemUnit } from '@/lib/types'
+import { ITEM_UNITS } from '@/lib/types'
+import { QuantityInput } from '@/components/quantity-input'
 
 type Tab = 'items' | 'dishes' | 'recipes' | 'tables'
 
@@ -42,7 +44,7 @@ export default function SettingsPage() {
 
   // Items
   async function addItem() {
-    if (!newItem.name_vi.trim()) return
+    if (!newItem.name_vi.trim() || !newItem.unit) return
     const { data } = await supabase.from('items')
       .insert({ ...newItem, branch_id: branchId, quantity: 0 }).select().single()
     if (data) { setItems(p => [...p, data]); setNewItem({ name_vi: '', name_en: '', unit: '', low_threshold: 3 }) }
@@ -192,9 +194,12 @@ export default function SettingsPage() {
             <input placeholder="Name (EN)" value={newItem.name_en}
               onChange={e => setNewItem(p => ({ ...p, name_en: e.target.value }))}
               className={inputCls} />
-            <input placeholder="Đơn vị" value={newItem.unit}
-              onChange={e => setNewItem(p => ({ ...p, unit: e.target.value }))}
-              className={inputCls} />
+            <select value={newItem.unit}
+              onChange={e => setNewItem(p => ({ ...p, unit: e.target.value as ItemUnit }))}
+              className={inputCls}>
+              <option value="">-- Đơn vị --</option>
+              {ITEM_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
             <input type="number" placeholder="Ngưỡng thấp" value={newItem.low_threshold}
               onChange={e => setNewItem(p => ({ ...p, low_threshold: +e.target.value }))}
               className={inputCls} />
@@ -214,12 +219,19 @@ export default function SettingsPage() {
                     <div className="font-bold">{item.name_vi}</div>
                     {item.name_en && <div className="text-label-en text-on-surface-variant">{item.name_en}</div>}
                   </td>
-                  <td className="py-2"><input value={item.unit}
+                  <td className="py-2"><select value={item.unit}
                     onChange={e => updateItem(item.id, 'unit', e.target.value)}
-                    className="border border-outline-variant rounded px-2 py-1 w-20 text-label-en" /></td>
-                  <td className="py-2"><input type="number" value={Number(item.low_threshold)}
-                    onChange={e => updateItem(item.id, 'low_threshold', +e.target.value)}
-                    className="border border-outline-variant rounded px-2 py-1 w-16 text-label-en" /></td>
+                    className="border border-outline-variant rounded px-2 py-1 w-20 text-label-en">
+                    {ITEM_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                  </select></td>
+                  <td className="py-2">
+                    <QuantityInput
+                      value={Number(item.low_threshold)}
+                      unit={item.unit}
+                      onConfirm={newValue => updateItem(item.id, 'low_threshold', newValue)}
+                      onCancel={() => {}}
+                    />
+                  </td>
                   <td className="py-2">
                     <span className={item.is_active ? badgeActive : badgeInactive}>
                       {item.is_active ? 'Hoạt động' : 'Tắt'}
