@@ -10,6 +10,8 @@ import { getDishStatus, getMaxOrderableQty } from '@/lib/dish-availability'
 import { sortToppingsByRelevance } from '@/lib/topping-relevance'
 import { calculateDecrements, applyStockChange } from '@/lib/stock'
 import { groupTablesByFloor } from '@/lib/tables'
+import { aggregateQuantities } from '@/lib/order-lines'
+import type { OrderLine } from '@/lib/order-lines'
 import { num } from '@/lib/types'
 import type { Dish, Item, RecipeLine, Table } from '@/lib/types'
 
@@ -27,10 +29,8 @@ export default function DatMonPage() {
   const [recipes, setRecipes]         = useState<RecipeLine[]>([])
   const [selectedTable, setSelectedTable]   = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [quantities, setQuantities]   = useState<Record<string, number>>({})
-  const [notes, setNotes]             = useState<Record<string, string>>({})
+  const [lines, setLines]             = useState<OrderLine[]>([])
   const [panelDish, setPanelDish]     = useState<Dish | null>(null)
-  const [bypassCapFor, setBypassCapFor] = useState<string | null>(null)
   const [step, setStep]               = useState<Step>('table')
   const [submitting, setSubmitting]   = useState(false)
   const [toast, setToast]             = useState<string | null>(null)
@@ -88,24 +88,17 @@ export default function DatMonPage() {
     ? sortToppingsByRelevance(panelDish, toppingDishes.filter(d => d.id !== panelDish.id), recipes)
     : []
 
-  function adjustQty(dishId: string, delta: 1 | -1, options?: { bypassCap?: boolean }) {
-    setQuantities(prev => {
-      const current = prev[dishId] ?? 0
-      if (delta === 1 && !options?.bypassCap) {
-        const maxQty = getMaxOrderableQty(dishId, recipes, items, prev)
-        if (current >= maxQty) return prev
-      }
-      return { ...prev, [dishId]: Math.max(0, current + delta) }
-    })
-  }
+  // Stock consumption per dish across the whole cart — own lines plus any
+  // toppings attached to other lines, since a topping draws from the same
+  // ingredient pool as ordering it standalone would.
+  const stockQuantities = aggregateQuantities(lines)
+  const totalLineCount = Object.values(stockQuantities).reduce((sum, qty) => sum + qty, 0)
 
-  function addToppingQuantities(toppingQuantities: Record<string, number>) {
-    setQuantities(prev => {
-      const next = { ...prev }
-      for (const [toppingId, addQty] of Object.entries(toppingQuantities)) {
-        if (addQty > 0) next[toppingId] = (next[toppingId] ?? 0) + addQty
-      }
-      return next
+  function removeLine(dishId: string) {
+    setLines(prev => {
+      const idx = prev.map(l => l.dishId).lastIndexOf(dishId)
+      if (idx === -1) return prev
+      return prev.filter((_, i) => i !== idx)
     })
   }
 
@@ -114,14 +107,13 @@ export default function DatMonPage() {
 
     if (status === 'unavailable') {
       if (window.confirm('Món này hiện không đủ nguyên liệu. Vẫn muốn đặt?')) {
-        setBypassCapFor(dish.id)
         setPanelDish(dish)
       }
       return
     }
 
-    const maxQty = getMaxOrderableQty(dish.id, recipes, items, quantities)
-    const currentQty = quantities[dish.id] ?? 0
+    const maxQty = getMaxOrderableQty(dish.id, recipes, items, stockQuantities)
+    const currentQty = stockQuantities[dish.id] ?? 0
     if (currentQty >= maxQty) return
 
     setPanelDish(dish)
@@ -129,34 +121,24 @@ export default function DatMonPage() {
 
   function handlePanelConfirm({ toppingQuantities, note }: { toppingQuantities: Record<string, number>; note: string }) {
     if (!panelDish) return
-    const dishId = panelDish.id
 
-    adjustQty(dishId, 1, { bypassCap: bypassCapFor === dishId })
-    addToppingQuantities(toppingQuantities)
+    const newLine: OrderLine = {
+      id: crypto.randomUUID(),
+      dishId: panelDish.id,
+      toppings: Object.fromEntries(Object.entries(toppingQuantities).filter(([, qty]) => qty > 0)),
+      note: note.trim(),
+    }
 
-    setNotes(prev => {
-      const next = { ...prev }
-      const trimmed = note.trim()
-      if (trimmed) next[dishId] = trimmed
-      else delete next[dishId]
-      return next
-    })
-
+    setLines(prev => [...prev, newLine])
     setPanelDish(null)
-    setBypassCapFor(null)
   }
 
   function handlePanelClose() {
     setPanelDish(null)
-    setBypassCapFor(null)
   }
 
-  const orderLines = Object.entries(quantities)
-    .filter(([, qty]) => qty > 0)
-    .map(([dish_id, qty]) => ({ dish_id, qty }))
-
   async function handleSubmit() {
-    if (!selectedTable || orderLines.length === 0) return
+    if (!selectedTable || lines.length === 0) return
     setSubmitting(true)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -170,25 +152,49 @@ export default function DatMonPage() {
 
     if (orderError || !order) { setSubmitting(false); return }
 
-    await supabase.from('order_items').insert(
-      orderLines.map(l => {
-        const dish = dishes.find(d => d.id === l.dish_id)!
-        return {
+    // Each line's dish row must be inserted (and its id known) before its
+    // toppings can be linked to it via parent_item_id — sequential per line.
+    for (const line of lines) {
+      const dish = dishes.find(d => d.id === line.dishId)!
+      const { data: dishItem } = await supabase
+        .from('order_items')
+        .insert({
           order_id: order.id,
-          dish_id: l.dish_id,
-          qty: l.qty,
+          dish_id: line.dishId,
+          qty: 1,
           price_at_order: num(dish.price),
-          note: notes[l.dish_id] || null,
-        }
-      })
-    )
+          note: line.note || null,
+        })
+        .select('id')
+        .single()
 
-    const decrements = calculateDecrements(orderLines, recipes)
+      if (!dishItem) continue
+
+      const toppingRows = Object.entries(line.toppings)
+        .filter(([, qty]) => qty > 0)
+        .map(([toppingId, qty]) => {
+          const topping = dishes.find(d => d.id === toppingId)!
+          return {
+            order_id: order.id,
+            dish_id: toppingId,
+            qty,
+            price_at_order: num(topping.price),
+            note: null,
+            parent_item_id: dishItem.id,
+          }
+        })
+
+      if (toppingRows.length > 0) {
+        await supabase.from('order_items').insert(toppingRows)
+      }
+    }
+
+    const orderQtyEntries = Object.entries(stockQuantities).map(([dish_id, qty]) => ({ dish_id, qty }))
+    const decrements = calculateDecrements(orderQtyEntries, recipes)
     const { floored } = await applyStockChange(decrements, 'order', user.id, order.id)
 
     setSubmitting(false)
-    setQuantities({})
-    setNotes({})
+    setLines([])
     setSelectedTable(null)
     setStep('table')
 
@@ -212,7 +218,7 @@ export default function DatMonPage() {
         <ToppingPanel
           dish={panelDish}
           toppings={panelToppings}
-          initialNote={notes[panelDish.id] ?? ''}
+          initialNote=""
           onConfirm={handlePanelConfirm}
           onClose={handlePanelClose}
         />
@@ -294,30 +300,31 @@ export default function DatMonPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pb-24">
             {visibleDishes.map(dish => {
               const status = getDishStatus(dish.id, recipes, items)
-              const qty = quantities[dish.id] ?? 0
-              const maxQty = getMaxOrderableQty(dish.id, recipes, items, quantities)
-              const atMax = status !== 'unavailable' && qty >= maxQty
+              const ownQty = lines.filter(l => l.dishId === dish.id).length
+              const stockQty = stockQuantities[dish.id] ?? 0
+              const maxQty = getMaxOrderableQty(dish.id, recipes, items, stockQuantities)
+              const atMax = status !== 'unavailable' && stockQty >= maxQty
               return (
                 <DishCard
                   key={dish.id}
                   dish={dish}
                   status={status}
-                  qty={qty}
+                  qty={ownQty}
                   atMax={atMax}
                   onCardTap={() => handleCardTap(dish)}
-                  onRemove={() => adjustQty(dish.id, -1)}
+                  onRemove={() => removeLine(dish.id)}
                 />
               )
             })}
           </div>
 
-          {orderLines.length > 0 && (
+          {lines.length > 0 && (
             <div className="fixed bottom-touch-target-min md:bottom-0 left-0 right-0 p-gutter bg-surface border-t border-outline-variant">
               <button
                 onClick={() => setStep('review')}
                 className="w-full bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min shadow-md"
               >
-                Xem lại đơn ({orderLines.reduce((s, l) => s + l.qty, 0)} món)
+                Xem lại đơn ({totalLineCount} món)
               </button>
             </div>
           )}
@@ -338,17 +345,26 @@ export default function DatMonPage() {
             <p className="text-label-en text-on-surface-variant">
               Bàn: <span className="font-bold text-on-surface">{tables.find(t => t.id === selectedTable)?.label}</span>
             </p>
-            {orderLines.map(l => {
-              const dish = dishes.find(d => d.id === l.dish_id)!
+            {lines.map(line => {
+              const dish = dishes.find(d => d.id === line.dishId)!
+              const toppingEntries = Object.entries(line.toppings).filter(([, qty]) => qty > 0)
               return (
-                <div key={l.dish_id} className="flex justify-between items-center">
+                <div key={line.id} className="flex justify-between items-start">
                   <div>
                     <span className="text-label-vi font-bold text-on-surface">{dish.name_vi}</span>
-                    {notes[l.dish_id] && (
-                      <span className="block text-label-en text-on-surface-variant">{notes[l.dish_id]}</span>
+                    {toppingEntries.map(([toppingId, qty]) => {
+                      const topping = dishes.find(d => d.id === toppingId)
+                      return (
+                        <span key={toppingId} className="block text-label-en text-on-surface-variant">
+                          {topping?.name_vi}{qty > 1 ? ` ×${qty}` : ''}
+                        </span>
+                      )
+                    })}
+                    {line.note && (
+                      <span className="block text-label-en text-on-surface-variant">{line.note}</span>
                     )}
                   </div>
-                  <span className="text-label-vi font-black text-primary">×{l.qty}</span>
+                  <span className="text-label-vi font-black text-primary">×1</span>
                 </div>
               )
             })}
