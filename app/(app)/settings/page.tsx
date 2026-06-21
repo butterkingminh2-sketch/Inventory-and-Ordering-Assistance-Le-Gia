@@ -18,7 +18,8 @@ export default function SettingsPage() {
   const [tables, setTables]   = useState<Table[]>([])
 
   const [newItem,  setNewItem]  = useState({ name_vi: '', name_en: '', unit: '', low_threshold: 3 })
-  const [newDish,  setNewDish]  = useState({ name_vi: '', name_en: '', price: 0 })
+  const [newDish,  setNewDish]  = useState({ name_vi: '', name_en: '', price: 0, category: '' })
+  const [newDishImage, setNewDishImage] = useState<File | null>(null)
   const [newLine,  setNewLine]  = useState({ item_id: '', qty_per_serving: 1 })
   const [newTable, setNewTable] = useState({ label: '', section: '' })
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null)
@@ -56,16 +57,55 @@ export default function SettingsPage() {
   }
 
   // Dishes
+  async function uploadDishImage(file: File): Promise<string> {
+    const ext = file.name.split('.').pop()
+    const path = `${crypto.randomUUID()}.${ext}`
+    const { error } = await supabase.storage.from('dish-images').upload(path, file)
+    if (error) throw error
+    const { data } = supabase.storage.from('dish-images').getPublicUrl(path)
+    return data.publicUrl
+  }
+
   async function addDish() {
     if (!newDish.name_vi.trim()) return
+
+    let image_url: string | null = null
+    if (newDishImage) {
+      try {
+        image_url = await uploadDishImage(newDishImage)
+      } catch {
+        alert('Không thể tải ảnh lên. Món ăn sẽ được lưu không có ảnh.')
+      }
+    }
+
     const { data } = await supabase.from('dishes')
-      .insert({ ...newDish, branch_id: branchId }).select().single()
-    if (data) { setDishes(p => [...p, data]); setNewDish({ name_vi: '', name_en: '', price: 0 }) }
+      .insert({ ...newDish, category: newDish.category || null, branch_id: branchId, image_url })
+      .select().single()
+    if (data) {
+      setDishes(p => [...p, data])
+      setNewDish({ name_vi: '', name_en: '', price: 0, category: '' })
+      setNewDishImage(null)
+    }
   }
 
   async function updateDishPrice(id: string, price: number) {
     await supabase.from('dishes').update({ price }).eq('id', id)
     setDishes(p => p.map(d => d.id === id ? { ...d, price } : d))
+  }
+
+  async function updateDishCategory(id: string, category: string) {
+    await supabase.from('dishes').update({ category: category || null }).eq('id', id)
+    setDishes(p => p.map(d => d.id === id ? { ...d, category: category || null } : d))
+  }
+
+  async function updateDishImage(id: string, file: File) {
+    try {
+      const image_url = await uploadDishImage(file)
+      await supabase.from('dishes').update({ image_url }).eq('id', id)
+      setDishes(p => p.map(d => d.id === id ? { ...d, image_url } : d))
+    } catch {
+      alert('Không thể tải ảnh lên. Vui lòng thử lại.')
+    }
   }
 
   async function deactivateDish(id: string) {
@@ -193,16 +233,22 @@ export default function SettingsPage() {
       {/* Dishes */}
       {tab === 'dishes' && (
         <div className="space-y-stack-lg">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <input placeholder="Tên món (VI) *" value={newDish.name_vi}
               onChange={e => setNewDish(p => ({ ...p, name_vi: e.target.value }))}
               className={`flex-1 ${inputCls}`} />
             <input placeholder="Name (EN)" value={newDish.name_en}
               onChange={e => setNewDish(p => ({ ...p, name_en: e.target.value }))}
               className={`flex-1 ${inputCls}`} />
+            <input placeholder="Phân loại" value={newDish.category}
+              onChange={e => setNewDish(p => ({ ...p, category: e.target.value }))}
+              className={`w-28 ${inputCls}`} />
             <input type="number" placeholder="Giá (đ)" value={newDish.price} min={0}
               onChange={e => setNewDish(p => ({ ...p, price: +e.target.value || 0 }))}
               className={`w-28 ${inputCls}`} />
+            <input type="file" accept="image/*"
+              onChange={e => setNewDishImage(e.target.files?.[0] ?? null)}
+              className="text-label-en" />
             <button onClick={addDish} className={btnPrimary}>+ Thêm</button>
           </div>
           <ul className="divide-y divide-outline-variant">
@@ -213,9 +259,17 @@ export default function SettingsPage() {
                   {dish.name_en && <p className="text-label-en text-on-surface-variant">{dish.name_en}</p>}
                 </div>
                 <div className="flex items-center gap-3">
+                  <input placeholder="Phân loại" value={dish.category ?? ''}
+                    onChange={e => updateDishCategory(dish.id, e.target.value)}
+                    className="border border-outline-variant rounded px-2 py-1 w-24 text-label-en" />
                   <input type="number" value={Number(dish.price)} min={0}
                     onChange={e => updateDishPrice(dish.id, +e.target.value || 0)}
                     className="border border-outline-variant rounded px-2 py-1 w-24 text-label-en" />
+                  <label className="text-label-en text-primary font-bold cursor-pointer">
+                    Đổi ảnh
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={e => { const f = e.target.files?.[0]; if (f) updateDishImage(dish.id, f) }} />
+                  </label>
                   <span className={dish.is_active ? badgeActive : badgeInactive}>
                     {dish.is_active ? 'Hoạt động' : 'Tắt'}
                   </span>
