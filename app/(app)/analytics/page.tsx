@@ -7,7 +7,6 @@ import { calculateDecrements } from '@/lib/stock'
 import { getDateRangeStart, rankByQuantity, rankByRevenue, getRestockAlerts } from '@/lib/analytics'
 import type { RestockAlert } from '@/lib/analytics'
 import { ChatPanel } from '@/components/chat-panel'
-import { num } from '@/lib/types'
 import type { Dish, Item, RecipeLine, UserRole } from '@/lib/types'
 
 type Preset = 'today' | '7d' | '30d'
@@ -30,6 +29,7 @@ export default function AnalyticsPage() {
   const [recipes, setRecipes] = useState<RecipeLine[]>([])
   const [role, setRole] = useState<UserRole | null>(null)
   const [chatDraft, setChatDraft] = useState<string | null>(null)
+  const [daysInRange, setDaysInRange] = useState(1)
   const supabase = createClient()
 
   useEffect(() => {
@@ -41,8 +41,11 @@ export default function AnalyticsPage() {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+
     async function load() {
-      const rangeStart = getDateRangeStart(new Date(), preset)
+      const now = new Date()
+      const rangeStart = getDateRangeStart(now, preset)
       const [ordersRes, dishesRes, itemsRes, recipesRes] = await Promise.all([
         supabase
           .from('orders')
@@ -54,16 +57,20 @@ export default function AnalyticsPage() {
         supabase.from('items').select('*').eq('branch_id', branchId).eq('is_active', true),
         supabase.from('recipe_lines').select('*'),
       ])
+      // Guards against a slow response from a preset the user has since
+      // switched away from landing after a newer one and clobbering it —
+      // same race class already found and fixed in ChatPanel's loadMessages.
+      if (cancelled) return
       if (ordersRes.data) setOrderLines(ordersRes.data.flatMap(o => o.order_items))
       if (dishesRes.data) setDishes(dishesRes.data)
       if (itemsRes.data) setItems(itemsRes.data)
       if (recipesRes.data) setRecipes(recipesRes.data)
+      setDaysInRange((now.getTime() - rangeStart.getTime()) / 86_400_000)
     }
-    load()
-  }, [branchId, preset])
 
-  const rangeStart = getDateRangeStart(new Date(), preset)
-  const daysInRange = (Date.now() - rangeStart.getTime()) / 86_400_000
+    load()
+    return () => { cancelled = true }
+  }, [branchId, preset])
 
   const topByQty = rankByQuantity(orderLines, dishes, TOP_N)
   const topByRevenue = rankByRevenue(orderLines, dishes, TOP_N)
