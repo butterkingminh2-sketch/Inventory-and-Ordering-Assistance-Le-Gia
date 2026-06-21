@@ -77,7 +77,18 @@ export default function DatMonPage() {
     ? dishes
     : dishes.filter(d => d.category === selectedCategory)
 
-  const toppingDishes = dishes.filter(d => d.is_topping)
+  // Toppings are scoped to the base dish's own menu section — e.g. a Lẩu
+  // hotpot add-on must never show up on a Bún riêu bowl just because they
+  // happen to share an ingredient like Riêu cua. Add an entry here whenever
+  // a new "Đồ gọi thêm ___" category is introduced for another section.
+  const TOPPING_CATEGORY_FOR: Record<string, string> = {
+    'Bún riêu': 'Đồ gọi thêm',
+    'Lẩu': 'Đồ gọi thêm lẩu',
+  }
+
+  const toppingDishes = panelDish
+    ? dishes.filter(d => d.is_topping && d.category === TOPPING_CATEGORY_FOR[panelDish.category ?? ''])
+    : []
   const panelToppings = panelDish
     ? sortToppingsByRelevance(panelDish, toppingDishes.filter(d => d.id !== panelDish.id), recipes)
     : []
