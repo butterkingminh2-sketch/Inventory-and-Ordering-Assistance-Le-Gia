@@ -79,8 +79,12 @@ export function IngredientCard({ item, onAdjust, onSetQuantity }: Props) {
               {qty}
             </button>
           )}
-          {' '}
-          <span className="text-label-en text-on-surface-variant">{item.unit}</span>
+          {!editing && (
+            <>
+              {' '}
+              <span className="text-label-en text-on-surface-variant">{item.unit}</span>
+            </>
+          )}
         </div>
         <div className="flex gap-2">
           <button
