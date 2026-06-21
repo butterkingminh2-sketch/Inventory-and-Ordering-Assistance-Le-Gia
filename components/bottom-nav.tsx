@@ -17,6 +17,7 @@ export function BottomNav({ role, readyCount }: Props) {
     { href: '/dat-mon',   labelVi: 'Đặt món',   icon: 'add_shopping_cart' },
     { href: '/dang-chay', labelVi: 'Đang chạy', icon: 'receipt_long', badge: readyCount },
     ...(role === 'manager' ? [{ href: '/settings', labelVi: 'Cài đặt', icon: 'settings' }] : []),
+    ...(role === 'manager' || role === 'owner' ? [{ href: '/analytics', labelVi: 'Thống kê', icon: 'bar_chart' }] : []),
   ]
 
   return (

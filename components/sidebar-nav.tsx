@@ -36,6 +36,10 @@ export function SidebarNav({ role, readyCount }: Props) {
     tabs.push({ href: '/settings', labelVi: 'Cài đặt', labelEn: 'Settings', icon: 'settings' })
   }
 
+  if (role === 'manager' || role === 'owner') {
+    tabs.push({ href: '/analytics', labelVi: 'Thống kê', labelEn: 'Analytics', icon: 'bar_chart' })
+  }
+
   return (
     <nav aria-label="Navigation chính" className="py-2">
       {tabs.map(tab => {
