@@ -53,6 +53,10 @@ export default function SettingsPage() {
     await supabase.from('items').update({ is_active: false }).eq('id', id)
     setItems(p => p.map(i => i.id === id ? { ...i, is_active: false } : i))
   }
+  async function activateItem(id: string) {
+    await supabase.from('items').update({ is_active: true }).eq('id', id)
+    setItems(p => p.map(i => i.id === id ? { ...i, is_active: true } : i))
+  }
   async function updateItem(id: string, field: string, value: string | number) {
     await supabase.from('items').update({ [field]: value }).eq('id', id)
     setItems(p => p.map(i => i.id === id ? { ...i, [field]: value } : i))
@@ -119,6 +123,10 @@ export default function SettingsPage() {
     await supabase.from('dishes').update({ is_active: false }).eq('id', id)
     setDishes(p => p.map(d => d.id === id ? { ...d, is_active: false } : d))
   }
+  async function activateDish(id: string) {
+    await supabase.from('dishes').update({ is_active: true }).eq('id', id)
+    setDishes(p => p.map(d => d.id === id ? { ...d, is_active: true } : d))
+  }
 
   // Recipes
   async function addRecipeLine() {
@@ -148,6 +156,10 @@ export default function SettingsPage() {
     await supabase.from('tables').update({ is_active: false }).eq('id', id)
     setTables(p => p.map(t => t.id === id ? { ...t, is_active: false } : t))
   }
+  async function activateTable(id: string) {
+    await supabase.from('tables').update({ is_active: true }).eq('id', id)
+    setTables(p => p.map(t => t.id === id ? { ...t, is_active: true } : t))
+  }
 
   const TABS: { key: Tab; labelVi: string }[] = [
     { key: 'items',   labelVi: 'Nguyên liệu' },
@@ -161,6 +173,7 @@ export default function SettingsPage() {
   const inputCls = 'border border-outline-variant rounded-lg px-3 py-2 text-label-vi bg-surface-container-lowest text-on-surface focus:outline-none focus:ring-2 focus:ring-primary min-h-touch-target-min'
   const btnPrimary = 'bg-primary text-on-primary rounded-lg px-4 font-bold text-label-vi min-h-touch-target-min hover:bg-primary-container transition-colors'
   const btnDanger = 'text-error text-label-en font-bold hover:underline'
+  const btnSecondary = 'text-secondary text-label-en font-bold hover:underline'
   const badgeActive = 'text-label-en px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container'
   const badgeInactive = 'text-label-en px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant'
 
@@ -236,7 +249,9 @@ export default function SettingsPage() {
                     </span>
                   </td>
                   <td className="py-2 text-right">
-                    {item.is_active && <button onClick={() => deactivateItem(item.id)} className={btnDanger}>Tắt</button>}
+                    {item.is_active
+                      ? <button onClick={() => deactivateItem(item.id)} className={btnDanger}>Tắt</button>
+                      : <button onClick={() => activateItem(item.id)} className={btnSecondary}>Kích hoạt</button>}
                   </td>
                 </tr>
               ))}
@@ -298,7 +313,9 @@ export default function SettingsPage() {
                   <span className={dish.is_active ? badgeActive : badgeInactive}>
                     {dish.is_active ? 'Hoạt động' : 'Tắt'}
                   </span>
-                  {dish.is_active && <button onClick={() => deactivateDish(dish.id)} className={btnDanger}>Tắt</button>}
+                  {dish.is_active
+                    ? <button onClick={() => deactivateDish(dish.id)} className={btnDanger}>Tắt</button>
+                    : <button onClick={() => activateDish(dish.id)} className={btnSecondary}>Kích hoạt</button>}
                 </div>
               </li>
             ))}
@@ -368,9 +385,9 @@ export default function SettingsPage() {
                 <span className={takeoutTable.is_active ? badgeActive : badgeInactive}>
                   {takeoutTable.is_active ? 'Hoạt động' : 'Tắt'}
                 </span>
-                {takeoutTable.is_active && (
-                  <button onClick={() => deactivateTable(takeoutTable.id)} className={btnDanger}>Tắt</button>
-                )}
+                {takeoutTable.is_active
+                  ? <button onClick={() => deactivateTable(takeoutTable.id)} className={btnDanger}>Tắt</button>
+                  : <button onClick={() => activateTable(takeoutTable.id)} className={btnSecondary}>Kích hoạt</button>}
               </div>
             </div>
           )}
@@ -386,7 +403,9 @@ export default function SettingsPage() {
                       <span className={t.is_active ? badgeActive : badgeInactive}>
                         {t.is_active ? 'Hoạt động' : 'Tắt'}
                       </span>
-                      {t.is_active && <button onClick={() => deactivateTable(t.id)} className={btnDanger}>Tắt</button>}
+                      {t.is_active
+                        ? <button onClick={() => deactivateTable(t.id)} className={btnDanger}>Tắt</button>
+                        : <button onClick={() => activateTable(t.id)} className={btnSecondary}>Kích hoạt</button>}
                     </div>
                   </li>
                 ))}
