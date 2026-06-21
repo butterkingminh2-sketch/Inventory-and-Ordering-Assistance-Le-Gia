@@ -66,12 +66,13 @@ export function AppShell({ role, defaultBranchId, fullName, children }: Props) {
   }, [branchId])
 
   const currentBranchName = branches.find(b => b.id === branchId)?.name
+  const canSwitchBranch = role === 'manager' || role === 'owner'
 
   return (
     <BranchContext.Provider value={{ branchId, setBranchId }}>
       {/* Top header */}
       <header className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-gutter min-h-touch-target-min bg-surface border-b border-outline-variant">
-        {(role === 'manager' || role === 'owner') && currentBranchName && (
+        {canSwitchBranch && currentBranchName && (
           <span className="text-label-vi font-bold text-on-surface px-1">{currentBranchName}</span>
         )}
 
@@ -80,8 +81,8 @@ export function AppShell({ role, defaultBranchId, fullName, children }: Props) {
           <AccountMenu
             fullName={fullName}
             role={role}
-            branchId={role === 'manager' || role === 'owner' ? branchId : undefined}
-            onBranchChange={role === 'manager' || role === 'owner' ? setBranchId : undefined}
+            branchId={canSwitchBranch ? branchId : undefined}
+            onBranchChange={canSwitchBranch ? setBranchId : undefined}
           />
         </div>
       </header>
