@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useContext, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { OrderCard } from '@/components/order-card'
 import { BranchContext } from '../app-shell'
@@ -10,6 +11,7 @@ import type { OrderWithDetails } from '@/lib/types'
 export default function DangChayPage() {
   const { branchId } = useContext(BranchContext)
   const [orders, setOrders] = useState<OrderWithDetails[]>([])
+  const router = useRouter()
   const supabase = createClient()
 
   const loadOrders = useCallback(async () => {
@@ -60,6 +62,10 @@ export default function DangChayPage() {
     await supabase.from('orders').update({ status: 'delivered' }).eq('id', orderId)
   }
 
+  function handleReorder(tableId: string) {
+    router.push(`/dat-mon?table=${tableId}`)
+  }
+
   if (orders.length === 0) {
     return (
       <p className="text-on-surface-variant text-center mt-16 text-label-vi">
@@ -76,6 +82,7 @@ export default function DangChayPage() {
           order={order}
           onCancel={handleCancel}
           onDeliver={handleDeliver}
+          onReorder={handleReorder}
         />
       ))}
     </div>

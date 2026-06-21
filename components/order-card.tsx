@@ -7,9 +7,10 @@ interface Props {
   order: OrderWithDetails
   onCancel: (orderId: string) => void
   onDeliver: (orderId: string) => void
+  onReorder: (tableId: string) => void
 }
 
-export function OrderCard({ order, onCancel, onDeliver }: Props) {
+export function OrderCard({ order, onCancel, onDeliver, onReorder }: Props) {
   const urgent = order.status === 'ready' && isUrgent(order.ready_at)
 
   return (
@@ -52,6 +53,15 @@ export function OrderCard({ order, onCancel, onDeliver }: Props) {
 
       {/* Right: action buttons */}
       <div className="flex md:flex-col border-t md:border-t-0 md:border-l border-outline-variant">
+        <button
+          onClick={() => onReorder(order.table_id!)}
+          className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 text-primary hover:bg-primary-fixed transition-colors"
+          aria-label="Thêm món"
+        >
+          <span className="material-symbols-outlined text-[24px]" aria-hidden>add_circle</span>
+          <span className="text-label-en font-bold">Thêm món</span>
+        </button>
+
         <button
           onClick={() => onCancel(order.id)}
           className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 text-error hover:bg-error-container transition-colors"
