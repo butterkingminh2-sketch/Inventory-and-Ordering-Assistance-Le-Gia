@@ -53,6 +53,9 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder }: Props) {
 
       {/* Right: action buttons */}
       <div className="flex md:flex-col border-t md:border-t-0 md:border-l border-outline-variant">
+        {/* table_id! is safe today: the only place orders are created (Đặt món's
+            handleSubmit) requires a non-null selectedTable before inserting. If a
+            future order-creation path skips that guard, this assertion would lie. */}
         <button
           onClick={() => onReorder(order.table_id!)}
           className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 text-primary hover:bg-primary-fixed transition-colors"
