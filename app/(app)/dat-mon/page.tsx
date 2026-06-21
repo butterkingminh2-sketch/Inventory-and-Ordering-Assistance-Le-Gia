@@ -9,6 +9,7 @@ import { BranchContext } from '../app-shell'
 import { getDishStatus, getMaxOrderableQty } from '@/lib/dish-availability'
 import { sortToppingsByRelevance } from '@/lib/topping-relevance'
 import { calculateDecrements, applyStockChange } from '@/lib/stock'
+import { groupTablesByFloor } from '@/lib/tables'
 import { num } from '@/lib/types'
 import type { Dish, Item, RecipeLine, Table } from '@/lib/types'
 
@@ -25,7 +26,6 @@ export default function DatMonPage() {
   const [items, setItems]             = useState<Item[]>([])
   const [recipes, setRecipes]         = useState<RecipeLine[]>([])
   const [selectedTable, setSelectedTable]   = useState<string | null>(null)
-  const [selectedSection, setSelectedSection] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [quantities, setQuantities]   = useState<Record<string, number>>({})
   const [notes, setNotes]             = useState<Record<string, string>>({})
@@ -38,15 +38,13 @@ export default function DatMonPage() {
   useEffect(() => {
     async function load() {
       const [t, d, i, r] = await Promise.all([
-        supabase.from('tables').select('*').eq('branch_id', branchId).eq('is_active', true).order('section').order('label'),
+        supabase.from('tables').select('*').eq('branch_id', branchId).eq('is_active', true).order('label'),
         supabase.from('dishes').select('*').eq('branch_id', branchId).eq('is_active', true).order('name_vi'),
         supabase.from('items').select('*').eq('branch_id', branchId).eq('is_active', true),
         supabase.from('recipe_lines').select('*'),
       ])
       if (t.data) {
         setTables(t.data)
-        const secs = [...new Set(t.data.map(tbl => tbl.section).filter((s): s is string => s !== null))]
-        setSelectedSection(secs.length > 1 ? secs[0] : null)
 
         const tableParam = searchParams.get('table')
         if (tableParam && t.data.some(tbl => tbl.id === tableParam)) {
@@ -64,14 +62,11 @@ export default function DatMonPage() {
     load()
   }, [branchId])
 
-  const sections = [...new Set(tables.map(t => t.section).filter((s): s is string => s !== null))]
-  const visibleTables = sections.length > 1 && selectedSection
-    ? tables.filter(t => t.section === selectedSection)
-    : tables
+  const { takeout: takeoutTable, floors: floorGroups } = groupTablesByFloor(tables)
 
-  // Unlike selectedSection above, selectedCategory never auto-selects away from
-  // null ("Tất cả") — an uncategorized dish must never become invisible just
-  // because other categories exist.
+  // selectedCategory never auto-selects away from null ("Tất cả") — an
+  // uncategorized dish must never become invisible just because other
+  // categories exist.
   const categories = [...new Set(dishes.map(d => d.category).filter((c): c is string => c !== null))]
   const visibleDishes = selectedCategory === null
     ? dishes
@@ -206,7 +201,7 @@ export default function DatMonPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto">
       {toast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-error text-on-error text-label-vi font-bold px-stack-lg py-2 rounded-xl z-50 shadow-lg">
           {toast}
@@ -230,35 +225,31 @@ export default function DatMonPage() {
             <span className="block text-label-en font-normal text-on-surface-variant">Select table</span>
           </h2>
 
-          {sections.length > 1 && (
-            <div className="flex gap-2 mb-stack-lg overflow-x-auto pb-1">
-              {sections.map(s => (
-                <button
-                  key={s}
-                  onClick={() => setSelectedSection(s)}
-                  className={`px-4 rounded-full text-label-vi font-bold whitespace-nowrap min-h-touch-target-min transition-colors ${
-                    selectedSection === s
-                      ? 'bg-primary text-on-primary'
-                      : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
+          {takeoutTable && (
+            <button
+              onClick={() => { setSelectedTable(takeoutTable.id); setStep('dishes') }}
+              className="w-full min-h-touch-target-min mb-stack-lg rounded-xl bg-primary text-on-primary font-bold text-label-vi shadow-md hover:bg-primary-container transition-all"
+            >
+              {takeoutTable.label}
+            </button>
           )}
 
-          <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-            {visibleTables.map(t => (
-              <button
-                key={t.id}
-                onClick={() => { setSelectedTable(t.id); setStep('dishes') }}
-                className="min-h-touch-target-min rounded-xl border-2 border-outline-variant bg-surface-container-lowest font-bold text-label-vi text-on-surface hover:border-primary hover:bg-primary-fixed transition-all"
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          {floorGroups.map(group => (
+            <div key={group.floor} className="mb-stack-lg">
+              <p className="text-label-en font-bold text-on-surface-variant uppercase mb-2">Tầng {group.floor}</p>
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {group.tables.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => { setSelectedTable(t.id); setStep('dishes') }}
+                    className="min-h-touch-target-min rounded-xl border-2 border-outline-variant bg-surface-container-lowest font-bold text-label-vi text-on-surface hover:border-primary hover:bg-primary-fixed transition-all"
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
         </>
       )}
 
@@ -300,7 +291,7 @@ export default function DatMonPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pb-24">
             {visibleDishes.map(dish => {
               const status = getDishStatus(dish.id, recipes, items)
               const qty = quantities[dish.id] ?? 0

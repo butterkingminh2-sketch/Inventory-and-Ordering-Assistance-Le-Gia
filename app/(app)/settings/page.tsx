@@ -6,6 +6,7 @@ import { BranchContext } from '../app-shell'
 import type { Item, Dish, RecipeLine, Table, ItemUnit } from '@/lib/types'
 import { ITEM_UNITS } from '@/lib/types'
 import { QuantityInput } from '@/components/quantity-input'
+import { groupTablesByFloor, getNextTableLabel } from '@/lib/tables'
 
 type Tab = 'items' | 'dishes' | 'recipes' | 'tables'
 
@@ -23,7 +24,6 @@ export default function SettingsPage() {
   const [newDish,  setNewDish]  = useState({ name_vi: '', name_en: '', price: 0, category: '', is_topping: false })
   const [newDishImage, setNewDishImage] = useState<File | null>(null)
   const [newLine,  setNewLine]  = useState({ item_id: '', qty_per_serving: 1 })
-  const [newTable, setNewTable] = useState({ label: '', section: '' })
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -139,18 +139,14 @@ export default function SettingsPage() {
 
   // Tables
   async function addTable() {
-    if (!newTable.label.trim()) return
+    const label = getNextTableLabel(tables)
     const { data } = await supabase.from('tables')
-      .insert({ label: newTable.label, section: newTable.section || null, branch_id: branchId }).select().single()
-    if (data) { setTables(p => [...p, data]); setNewTable({ label: '', section: '' }) }
+      .insert({ label, branch_id: branchId }).select().single()
+    if (data) setTables(p => [...p, data])
   }
   async function deactivateTable(id: string) {
     await supabase.from('tables').update({ is_active: false }).eq('id', id)
     setTables(p => p.map(t => t.id === id ? { ...t, is_active: false } : t))
-  }
-  async function updateTableLabel(id: string, label: string) {
-    await supabase.from('tables').update({ label }).eq('id', id)
-    setTables(p => p.map(t => t.id === id ? { ...t, label } : t))
   }
 
   const TABS: { key: Tab; labelVi: string }[] = [
@@ -159,6 +155,8 @@ export default function SettingsPage() {
     { key: 'recipes', labelVi: 'Công thức' },
     { key: 'tables',  labelVi: 'Bàn' },
   ]
+
+  const { takeout: takeoutTable, floors: floorGroups } = groupTablesByFloor(tables)
 
   const inputCls = 'border border-outline-variant rounded-lg px-3 py-2 text-label-vi bg-surface-container-lowest text-on-surface focus:outline-none focus:ring-2 focus:ring-primary min-h-touch-target-min'
   const btnPrimary = 'bg-primary text-on-primary rounded-lg px-4 font-bold text-label-vi min-h-touch-target-min hover:bg-primary-container transition-colors'
@@ -359,27 +357,42 @@ export default function SettingsPage() {
       {/* Tables */}
       {tab === 'tables' && (
         <div className="space-y-stack-lg">
-          <div className="flex gap-2">
-            <input placeholder="Tên bàn (Bàn 1, Mang về...)" value={newTable.label}
-              onChange={e => setNewTable(p => ({ ...p, label: e.target.value }))}
-              className={`flex-1 ${inputCls}`} />
-            <input placeholder="Khu vực (Tầng 1...)" value={newTable.section}
-              onChange={e => setNewTable(p => ({ ...p, section: e.target.value }))}
-              className={`w-32 ${inputCls}`} />
-            <button onClick={addTable} className={btnPrimary}>+ Thêm</button>
-          </div>
-          <ul className="divide-y divide-outline-variant">
-            {tables.map(t => (
-              <li key={t.id} className="py-2 flex items-center gap-3">
-                <input value={t.label} onChange={e => updateTableLabel(t.id, e.target.value)}
-                  className={`flex-1 ${inputCls}`} />
-                <span className={t.is_active ? badgeActive : badgeInactive}>
-                  {t.is_active ? 'Hoạt động' : 'Tắt'}
+          <button onClick={addTable} className={`${btnPrimary} w-full`}>
+            + Thêm {getNextTableLabel(tables)}
+          </button>
+
+          {takeoutTable && (
+            <div className="rounded-xl border-2 border-primary bg-primary-fixed p-stack-md flex items-center justify-between">
+              <span className="font-bold text-on-surface">{takeoutTable.label}</span>
+              <div className="flex items-center gap-3">
+                <span className={takeoutTable.is_active ? badgeActive : badgeInactive}>
+                  {takeoutTable.is_active ? 'Hoạt động' : 'Tắt'}
                 </span>
-                {t.is_active && <button onClick={() => deactivateTable(t.id)} className={btnDanger}>Tắt</button>}
-              </li>
-            ))}
-          </ul>
+                {takeoutTable.is_active && (
+                  <button onClick={() => deactivateTable(takeoutTable.id)} className={btnDanger}>Tắt</button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {floorGroups.map(group => (
+            <div key={group.floor}>
+              <p className="text-label-en font-bold text-on-surface-variant uppercase mb-2">Tầng {group.floor}</p>
+              <ul className="divide-y divide-outline-variant">
+                {group.tables.map(t => (
+                  <li key={t.id} className="py-2 flex items-center justify-between gap-3">
+                    <span className="text-label-vi text-on-surface">{t.label}</span>
+                    <div className="flex items-center gap-3">
+                      <span className={t.is_active ? badgeActive : badgeInactive}>
+                        {t.is_active ? 'Hoạt động' : 'Tắt'}
+                      </span>
+                      {t.is_active && <button onClick={() => deactivateTable(t.id)} className={btnDanger}>Tắt</button>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       )}
     </div>
