@@ -3,7 +3,7 @@
 import { useEffect, useState, useContext } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { DishRow } from '@/components/dish-row'
+import { DishCard } from '@/components/dish-card'
 import { BranchContext } from '../app-shell'
 import { getDishStatus, getMaxOrderableQty } from '@/lib/dish-availability'
 import { calculateDecrements, applyStockChange } from '@/lib/stock'
@@ -23,6 +23,7 @@ export default function DatMonPage() {
   const [recipes, setRecipes]         = useState<RecipeLine[]>([])
   const [selectedTable, setSelectedTable]   = useState<string | null>(null)
   const [selectedSection, setSelectedSection] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [quantities, setQuantities]   = useState<Record<string, number>>({})
   const [step, setStep]               = useState<Step>('table')
   const [submitting, setSubmitting]   = useState(false)
@@ -52,6 +53,11 @@ export default function DatMonPage() {
   const visibleTables = sections.length > 1 && selectedSection
     ? tables.filter(t => t.section === selectedSection)
     : tables
+
+  const categories = [...new Set(dishes.map(d => d.category).filter((c): c is string => c !== null))]
+  const visibleDishes = selectedCategory === null
+    ? dishes
+    : dishes.filter(d => d.category === selectedCategory)
 
   function adjustQty(dishId: string, delta: 1 | -1, options?: { bypassCap?: boolean }) {
     setQuantities(prev => {
@@ -174,14 +180,42 @@ export default function DatMonPage() {
             <h2 className="text-headline-md font-bold text-on-surface">Chọn món</h2>
           </div>
 
-          <div className="divide-y divide-outline-variant">
-            {dishes.map(dish => {
+          {categories.length > 0 && (
+            <div className="flex gap-2 mb-stack-lg overflow-x-auto pb-1">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={`px-4 rounded-full text-label-vi font-bold whitespace-nowrap min-h-touch-target-min transition-colors ${
+                  selectedCategory === null
+                    ? 'bg-primary text-on-primary'
+                    : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+                }`}
+              >
+                Tất cả
+              </button>
+              {categories.map(c => (
+                <button
+                  key={c}
+                  onClick={() => setSelectedCategory(c)}
+                  className={`px-4 rounded-full text-label-vi font-bold whitespace-nowrap min-h-touch-target-min transition-colors ${
+                    selectedCategory === c
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {visibleDishes.map(dish => {
               const status = getDishStatus(dish.id, recipes, items)
               const qty = quantities[dish.id] ?? 0
               const maxQty = getMaxOrderableQty(dish.id, recipes, items, quantities)
               const atMax = status !== 'unavailable' && qty >= maxQty
               return (
-                <DishRow
+                <DishCard
                   key={dish.id}
                   dish={dish}
                   status={status}
