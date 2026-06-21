@@ -61,7 +61,7 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder }: Props) {
             future order-creation path skips that guard, this assertion would lie. */}
         <button
           onClick={() => onReorder(order.table_id!)}
-          className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 text-primary hover:bg-primary-fixed transition-colors"
+          className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 text-primary hover:bg-primary-fixed transition-colors last:rounded-br-xl"
           aria-label="Thêm món"
         >
           <span className="material-symbols-outlined text-[24px]" aria-hidden>add_circle</span>
@@ -70,7 +70,7 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder }: Props) {
 
         <button
           onClick={() => onCancel(order.id)}
-          className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 text-error hover:bg-error-container transition-colors"
+          className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 text-error hover:bg-error-container transition-colors last:rounded-br-xl"
           aria-label="Hủy đơn"
         >
           <span className="material-symbols-outlined text-[24px]" aria-hidden>cancel</span>
@@ -80,7 +80,7 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder }: Props) {
         {order.status === 'ready' && (
           <button
             onClick={() => onDeliver(order.id)}
-            className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 bg-secondary text-on-secondary hover:bg-on-secondary-container transition-all active:scale-95 md:w-48"
+            className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 bg-secondary text-on-secondary hover:bg-on-secondary-container transition-all active:scale-95 md:w-48 last:rounded-br-xl"
             aria-label="Đã mang ra"
           >
             <span className="material-symbols-outlined text-[40px]" aria-hidden>check_circle</span>
