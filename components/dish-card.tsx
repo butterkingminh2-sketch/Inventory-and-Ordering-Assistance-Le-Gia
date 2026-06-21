@@ -9,11 +9,11 @@ interface Props {
   status: DishStatus
   qty: number
   atMax: boolean
-  onAdd: () => void
+  onCardTap: () => void
   onRemove: () => void
 }
 
-export function DishCard({ dish, status, qty, atMax, onAdd, onRemove }: Props) {
+export function DishCard({ dish, status, qty, atMax, onCardTap, onRemove }: Props) {
   const unavailable = status === 'unavailable'
   const [imageError, setImageError] = useState(false)
 
@@ -21,11 +21,11 @@ export function DishCard({ dish, status, qty, atMax, onAdd, onRemove }: Props) {
     <div
       role="button"
       tabIndex={0}
-      onClick={onAdd}
+      onClick={onCardTap}
       onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAdd() }
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCardTap() }
       }}
-      aria-label={`Thêm ${dish.name_vi}`}
+      aria-label={`Tùy chọn ${dish.name_vi}`}
       className={`rounded-xl border border-outline-variant bg-surface-container-lowest overflow-hidden cursor-pointer select-none active:scale-[0.98] transition-transform ${unavailable ? 'opacity-50' : ''}`}
     >
       <div className="aspect-[4/3] bg-surface-container-high flex items-center justify-center">

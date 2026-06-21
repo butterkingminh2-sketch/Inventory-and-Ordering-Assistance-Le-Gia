@@ -4,8 +4,10 @@ import { useEffect, useState, useContext } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { DishCard } from '@/components/dish-card'
+import { ToppingPanel } from '@/components/topping-panel'
 import { BranchContext } from '../app-shell'
 import { getDishStatus, getMaxOrderableQty } from '@/lib/dish-availability'
+import { sortToppingsByRelevance } from '@/lib/topping-relevance'
 import { calculateDecrements, applyStockChange } from '@/lib/stock'
 import { num } from '@/lib/types'
 import type { Dish, Item, RecipeLine, Table } from '@/lib/types'
@@ -26,6 +28,9 @@ export default function DatMonPage() {
   const [selectedSection, setSelectedSection] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [quantities, setQuantities]   = useState<Record<string, number>>({})
+  const [notes, setNotes]             = useState<Record<string, string>>({})
+  const [panelDish, setPanelDish]     = useState<Dish | null>(null)
+  const [bypassCapFor, setBypassCapFor] = useState<string | null>(null)
   const [step, setStep]               = useState<Step>('table')
   const [submitting, setSubmitting]   = useState(false)
   const [toast, setToast]             = useState<string | null>(null)
@@ -72,6 +77,9 @@ export default function DatMonPage() {
     ? dishes
     : dishes.filter(d => d.category === selectedCategory)
 
+  const toppingDishes = dishes.filter(d => d.is_topping)
+  const panelToppings = panelDish ? sortToppingsByRelevance(panelDish, toppingDishes, recipes) : []
+
   function adjustQty(dishId: string, delta: 1 | -1, options?: { bypassCap?: boolean }) {
     setQuantities(prev => {
       const current = prev[dishId] ?? 0
@@ -83,10 +91,56 @@ export default function DatMonPage() {
     })
   }
 
-  function handleAddUnavailable(dishId: string) {
-    if (window.confirm('Món này hiện không đủ nguyên liệu. Vẫn muốn đặt?')) {
-      adjustQty(dishId, 1, { bypassCap: true })
+  function addToppingQuantities(toppingQuantities: Record<string, number>) {
+    setQuantities(prev => {
+      const next = { ...prev }
+      for (const [toppingId, addQty] of Object.entries(toppingQuantities)) {
+        if (addQty > 0) next[toppingId] = (next[toppingId] ?? 0) + addQty
+      }
+      return next
+    })
+  }
+
+  function handleCardTap(dish: Dish) {
+    const status = getDishStatus(dish.id, recipes, items)
+
+    if (status === 'unavailable') {
+      if (window.confirm('Món này hiện không đủ nguyên liệu. Vẫn muốn đặt?')) {
+        setBypassCapFor(dish.id)
+        setPanelDish(dish)
+      }
+      return
     }
+
+    const maxQty = getMaxOrderableQty(dish.id, recipes, items, quantities)
+    const currentQty = quantities[dish.id] ?? 0
+    if (currentQty >= maxQty) return
+
+    setPanelDish(dish)
+  }
+
+  function handlePanelConfirm({ toppingQuantities, note }: { toppingQuantities: Record<string, number>; note: string }) {
+    if (!panelDish) return
+    const dishId = panelDish.id
+
+    adjustQty(dishId, 1, { bypassCap: bypassCapFor === dishId })
+    addToppingQuantities(toppingQuantities)
+
+    setNotes(prev => {
+      const next = { ...prev }
+      const trimmed = note.trim()
+      if (trimmed) next[dishId] = trimmed
+      else delete next[dishId]
+      return next
+    })
+
+    setPanelDish(null)
+    setBypassCapFor(null)
+  }
+
+  function handlePanelClose() {
+    setPanelDish(null)
+    setBypassCapFor(null)
   }
 
   const orderLines = Object.entries(quantities)
@@ -116,6 +170,7 @@ export default function DatMonPage() {
           dish_id: l.dish_id,
           qty: l.qty,
           price_at_order: num(dish.price),
+          note: notes[l.dish_id] || null,
         }
       })
     )
@@ -125,6 +180,7 @@ export default function DatMonPage() {
 
     setSubmitting(false)
     setQuantities({})
+    setNotes({})
     setSelectedTable(null)
     setStep('table')
 
@@ -142,6 +198,16 @@ export default function DatMonPage() {
         <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-error text-on-error text-label-vi font-bold px-stack-lg py-2 rounded-xl z-50 shadow-lg">
           {toast}
         </div>
+      )}
+
+      {panelDish && (
+        <ToppingPanel
+          dish={panelDish}
+          toppings={panelToppings}
+          initialNote={notes[panelDish.id] ?? ''}
+          onConfirm={handlePanelConfirm}
+          onClose={handlePanelClose}
+        />
       )}
 
       {step === 'table' && (
@@ -234,7 +300,7 @@ export default function DatMonPage() {
                   status={status}
                   qty={qty}
                   atMax={atMax}
-                  onAdd={() => status === 'unavailable' ? handleAddUnavailable(dish.id) : adjustQty(dish.id, 1)}
+                  onCardTap={() => handleCardTap(dish)}
                   onRemove={() => adjustQty(dish.id, -1)}
                 />
               )
@@ -272,7 +338,12 @@ export default function DatMonPage() {
               const dish = dishes.find(d => d.id === l.dish_id)!
               return (
                 <div key={l.dish_id} className="flex justify-between items-center">
-                  <span className="text-label-vi font-bold text-on-surface">{dish.name_vi}</span>
+                  <div>
+                    <span className="text-label-vi font-bold text-on-surface">{dish.name_vi}</span>
+                    {notes[l.dish_id] && (
+                      <span className="block text-label-en text-on-surface-variant">{notes[l.dish_id]}</span>
+                    )}
+                  </div>
                   <span className="text-label-vi font-black text-primary">×{l.qty}</span>
                 </div>
               )
