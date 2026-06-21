@@ -1,4 +1,4 @@
-export type UserRole = 'foh' | 'kitchen' | 'manager' | 'register'
+export type UserRole = 'foh' | 'kitchen' | 'manager' | 'register' | 'owner'
 export type OrderStatus = 'pending' | 'ready' | 'delivered' | 'cancelled'
 export type ItemUnit = 'g' | 'ml' | 'gói' | 'phần' | 'miếng' | 'bó' | 'viên' | 'chai' | 'quả' | 'lon' | 'nậm' | 'cái'
 export const ITEM_UNITS: ItemUnit[] = ['g', 'ml', 'gói', 'phần', 'miếng', 'bó', 'viên', 'chai', 'quả', 'lon', 'nậm', 'cái']
@@ -85,6 +85,19 @@ export interface UserProfile {
 export interface OrderWithDetails extends Order {
   order_items: Array<OrderItem & { dish: Pick<Dish, 'name_vi' | 'name_en'> }>
   table: Pick<Table, 'label'>
+}
+
+export interface Message {
+  id: string
+  branch_id: string
+  channel: 'public' | 'owner'
+  sender_id: string
+  body: string
+  created_at: string
+}
+
+export interface MessageWithSender extends Message {
+  sender: Pick<UserProfile, 'full_name' | 'role'>
 }
 
 export interface StockLog {

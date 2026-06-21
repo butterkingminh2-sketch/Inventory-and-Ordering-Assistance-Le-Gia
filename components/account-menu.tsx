@@ -11,6 +11,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   kitchen: 'Bếp',
   manager: 'Quản lý',
   register: 'Thu ngân',
+  owner: 'Chủ quán',
 }
 
 interface Props {
@@ -76,7 +77,7 @@ export function AccountMenu({ fullName, role, branchId, onBranchChange }: Props)
             <p className="text-label-en text-on-surface-variant">{ROLE_LABELS[role]}</p>
           </div>
 
-          {role === 'manager' && branchId && onBranchChange && (
+          {(role === 'manager' || role === 'owner') && branchId && onBranchChange && (
             <div className="p-stack-md border-b border-outline-variant">
               <p className="text-label-en text-on-surface-variant mb-1">Chi nhánh</p>
               <BranchSelector branchId={branchId} onBranchChange={onBranchChange} />
