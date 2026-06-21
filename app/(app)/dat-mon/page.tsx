@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useContext } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { DishCard } from '@/components/dish-card'
 import { BranchContext } from '../app-shell'
@@ -15,6 +15,7 @@ type Step = 'table' | 'dishes' | 'review'
 export default function DatMonPage() {
   const { branchId } = useContext(BranchContext)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   const [tables, setTables]           = useState<Table[]>([])
@@ -41,6 +42,15 @@ export default function DatMonPage() {
         setTables(t.data)
         const secs = [...new Set(t.data.map(tbl => tbl.section).filter((s): s is string => s !== null))]
         setSelectedSection(secs.length > 1 ? secs[0] : null)
+
+        const tableParam = searchParams.get('table')
+        if (tableParam && t.data.some(tbl => tbl.id === tableParam)) {
+          setSelectedTable(tableParam)
+          setStep('dishes')
+          // Clean the one-time navigation param out of the URL so a later
+          // refresh or back/forward navigation doesn't re-trigger the jump.
+          router.replace('/dat-mon')
+        }
       }
       if (d.data) setDishes(d.data)
       if (i.data) setItems(i.data)
