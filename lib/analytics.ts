@@ -99,3 +99,28 @@ export function getRestockAlerts(
   }
   return alerts.sort((a, b) => a.daysRemaining - b.daysRemaining)
 }
+
+export interface DailyRevenue {
+  date: string
+  revenue: number
+}
+
+/**
+ * Pure function — no DB calls. Revenue per calendar day, sorted oldest first.
+ * Buckets by the order's plain calendar date (not the 6 AM operational-day
+ * cutoff used elsewhere) — for a trend chart, simplicity reads better than
+ * matching the restock-alert day boundary exactly.
+ */
+export function getDailyRevenue(
+  orders: Array<{ created_at: string; order_items: Array<{ qty: number; price_at_order: number | string }> }>,
+): DailyRevenue[] {
+  const totals: Record<string, number> = {}
+  for (const order of orders) {
+    const date = order.created_at.slice(0, 10)
+    const orderRevenue = order.order_items.reduce((sum, oi) => sum + oi.qty * num(oi.price_at_order), 0)
+    totals[date] = (totals[date] ?? 0) + orderRevenue
+  }
+  return Object.entries(totals)
+    .map(([date, revenue]) => ({ date, revenue }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+}

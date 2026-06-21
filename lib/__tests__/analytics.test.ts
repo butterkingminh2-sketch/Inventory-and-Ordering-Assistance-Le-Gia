@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getDateRangeStart, rankByQuantity, rankByRevenue, getDaysRemaining, getRestockAlerts } from '../analytics'
+import { getDateRangeStart, rankByQuantity, rankByRevenue, getDaysRemaining, getRestockAlerts, getDailyRevenue } from '../analytics'
 import { getPublicChannelCutoff } from '../chat'
 import type { Dish, Item } from '../types'
 
@@ -96,5 +96,23 @@ describe('getRestockAlerts', () => {
     const items = [moc]
     const alerts = getRestockAlerts(items, {}, 1, 3)
     expect(alerts).toEqual([])
+  })
+})
+
+describe('getDailyRevenue', () => {
+  it('sums revenue per calendar day across multiple orders, sorted oldest first', () => {
+    const orders = [
+      { created_at: '2026-06-21T10:00:00Z', order_items: [{ qty: 2, price_at_order: 60000 }] },
+      { created_at: '2026-06-20T08:00:00Z', order_items: [{ qty: 1, price_at_order: 8000 }] },
+      { created_at: '2026-06-21T18:00:00Z', order_items: [{ qty: 1, price_at_order: 8000 }] },
+    ]
+    expect(getDailyRevenue(orders)).toEqual([
+      { date: '2026-06-20', revenue: 8000 },
+      { date: '2026-06-21', revenue: 128000 },
+    ])
+  })
+
+  it('returns an empty array for no orders', () => {
+    expect(getDailyRevenue([])).toEqual([])
   })
 })

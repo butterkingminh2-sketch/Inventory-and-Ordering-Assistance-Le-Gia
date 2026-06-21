@@ -1,13 +1,19 @@
 'use client'
 
 import { useEffect, useState, useContext } from 'react'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { createClient } from '@/lib/supabase/client'
 import { BranchContext } from '../app-shell'
 import { calculateDecrements } from '@/lib/stock'
-import { getDateRangeStart, rankByQuantity, rankByRevenue, getRestockAlerts } from '@/lib/analytics'
+import { getDateRangeStart, rankByQuantity, rankByRevenue, getRestockAlerts, getDailyRevenue } from '@/lib/analytics'
 import type { RestockAlert } from '@/lib/analytics'
 import { ChatPanel } from '@/components/chat-panel'
 import type { Dish, Item, RecipeLine, UserRole } from '@/lib/types'
+
+interface OrderWithLines {
+  created_at: string
+  order_items: Array<{ dish_id: string; qty: number; price_at_order: number | string }>
+}
 
 type Preset = 'today' | '7d' | '30d'
 
@@ -23,7 +29,7 @@ const TOP_N = 5
 export default function AnalyticsPage() {
   const { branchId } = useContext(BranchContext)
   const [preset, setPreset] = useState<Preset>('today')
-  const [orderLines, setOrderLines] = useState<Array<{ dish_id: string; qty: number; price_at_order: number | string }>>([])
+  const [orders, setOrders] = useState<OrderWithLines[]>([])
   const [dishes, setDishes] = useState<Dish[]>([])
   const [items, setItems] = useState<Item[]>([])
   const [recipes, setRecipes] = useState<RecipeLine[]>([])
@@ -49,7 +55,7 @@ export default function AnalyticsPage() {
       const [ordersRes, dishesRes, itemsRes, recipesRes] = await Promise.all([
         supabase
           .from('orders')
-          .select('id, order_items(dish_id, qty, price_at_order)')
+          .select('created_at, order_items(dish_id, qty, price_at_order)')
           .eq('branch_id', branchId)
           .neq('status', 'cancelled')
           .gte('created_at', rangeStart.toISOString()),
@@ -61,7 +67,7 @@ export default function AnalyticsPage() {
       // switched away from landing after a newer one and clobbering it —
       // same race class already found and fixed in ChatPanel's loadMessages.
       if (cancelled) return
-      if (ordersRes.data) setOrderLines(ordersRes.data.flatMap(o => o.order_items))
+      if (ordersRes.data) setOrders(ordersRes.data)
       if (dishesRes.data) setDishes(dishesRes.data)
       if (itemsRes.data) setItems(itemsRes.data)
       if (recipesRes.data) setRecipes(recipesRes.data)
@@ -72,8 +78,10 @@ export default function AnalyticsPage() {
     return () => { cancelled = true }
   }, [branchId, preset])
 
+  const orderLines = orders.flatMap(o => o.order_items)
   const topByQty = rankByQuantity(orderLines, dishes, TOP_N)
   const topByRevenue = rankByRevenue(orderLines, dishes, TOP_N)
+  const dailyRevenue = getDailyRevenue(orders)
 
   const consumption = calculateDecrements(orderLines, recipes, true)
   const consumptionByItemId: Record<string, number> = {}
@@ -123,6 +131,24 @@ export default function AnalyticsPage() {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {preset !== 'today' && (
+        <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg mb-stack-lg">
+          <p className="text-label-vi font-bold text-on-surface mb-stack-md">Doanh thu theo ngày</p>
+          {dailyRevenue.length === 0 ? (
+            <p className="text-label-en text-on-surface-variant">Chưa có đơn nào</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={dailyRevenue}>
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} width={60} tickFormatter={v => v.toLocaleString('vi-VN')} />
+                <Tooltip formatter={(v) => `${Number(v).toLocaleString('vi-VN')}đ`} />
+                <Line type="monotone" dataKey="revenue" stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       )}
 
