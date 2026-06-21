@@ -250,7 +250,7 @@ export default function DatMonPage() {
       )}
 
       {step === 'dishes' && (
-        <>
+        <div inert={panelDish !== null}>
           <div className="flex items-center gap-3 mb-stack-lg">
             <button onClick={() => setStep('table')} className="text-primary text-label-vi font-bold flex items-center gap-1">
               <span className="material-symbols-outlined text-[18px]" aria-hidden>arrow_back</span>
@@ -317,7 +317,7 @@ export default function DatMonPage() {
               </button>
             </div>
           )}
-        </>
+        </div>
       )}
 
       {step === 'review' && (
