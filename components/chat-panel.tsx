@@ -18,6 +18,7 @@ export function ChatPanel({ role, branchId, onClose }: Props) {
   const [messages, setMessages] = useState<MessageWithSender[]>([])
   const [text, setText] = useState('')
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [sendError, setSendError] = useState(false)
   const supabase = createClient()
   const listEndRef = useRef<HTMLDivElement>(null)
 
@@ -25,23 +26,27 @@ export function ChatPanel({ role, branchId, onClose }: Props) {
     supabase.auth.getUser().then(({ data: { user } }) => setCurrentUserId(user?.id ?? null))
   }, [])
 
-  async function loadMessages() {
-    let query = supabase
-      .from('messages')
-      .select('*, sender:user_profiles(full_name, role)')
-      .eq('branch_id', branchId)
-      .eq('channel', channel)
-      .order('created_at', { ascending: true })
+  useEffect(() => {
+    let cancelled = false
 
-    if (channel === 'public') {
-      query = query.gte('created_at', getPublicChannelCutoff(new Date()).toISOString())
+    async function loadMessages() {
+      let query = supabase
+        .from('messages')
+        .select('*, sender:user_profiles(full_name, role)')
+        .eq('branch_id', branchId)
+        .eq('channel', channel)
+        .order('created_at', { ascending: true })
+
+      if (channel === 'public') {
+        query = query.gte('created_at', getPublicChannelCutoff(new Date()).toISOString())
+      }
+
+      const { data } = await query
+      // Guards against a slow response from a channel the user has since
+      // switched away from landing after a newer one and clobbering it.
+      if (!cancelled && data) setMessages(data as MessageWithSender[])
     }
 
-    const { data } = await query
-    if (data) setMessages(data as MessageWithSender[])
-  }
-
-  useEffect(() => {
     loadMessages()
 
     const realtimeChannel = supabase
@@ -53,7 +58,7 @@ export function ChatPanel({ role, branchId, onClose }: Props) {
       )
       .subscribe()
 
-    return () => { supabase.removeChannel(realtimeChannel) }
+    return () => { cancelled = true; supabase.removeChannel(realtimeChannel) }
   }, [branchId, channel])
 
   useEffect(() => {
@@ -65,7 +70,12 @@ export function ChatPanel({ role, branchId, onClose }: Props) {
     if (!trimmed) return
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    await supabase.from('messages').insert({ branch_id: branchId, channel, sender_id: user.id, body: trimmed })
+    const { error } = await supabase.from('messages').insert({ branch_id: branchId, channel, sender_id: user.id, body: trimmed })
+    if (error) {
+      setSendError(true)
+      setTimeout(() => setSendError(false), 4000)
+      return
+    }
     setText('')
   }
 
@@ -123,6 +133,10 @@ export function ChatPanel({ role, branchId, onClose }: Props) {
           })}
           <div ref={listEndRef} />
         </div>
+
+        {sendError && (
+          <p className="px-stack-lg py-1 text-label-en text-error">Không thể gửi tin nhắn. Vui lòng thử lại.</p>
+        )}
 
         <div className="p-stack-lg border-t border-outline-variant flex gap-2">
           <input
