@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AccountMenu } from '@/components/account-menu'
+import { ChatTrigger } from '@/components/chat-trigger'
 
 export default async function KitchenLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -9,7 +10,7 @@ export default async function KitchenLayout({ children }: { children: React.Reac
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('role, full_name')
+    .select('role, full_name, branch_id')
     .eq('id', user.id)
     .single()
 
@@ -28,9 +29,7 @@ export default async function KitchenLayout({ children }: { children: React.Reac
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-[22px] text-on-surface-variant" aria-hidden>
-            chat
-          </span>
+          <ChatTrigger role={profile.role} branchId={profile.branch_id} />
           <AccountMenu fullName={profile.full_name} role={profile.role} />
         </div>
       </header>
