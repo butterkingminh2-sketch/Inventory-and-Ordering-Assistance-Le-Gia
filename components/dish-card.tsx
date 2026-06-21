@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import type { Dish } from '@/lib/types'
 import type { DishStatus } from '@/lib/dish-availability'
 
@@ -14,6 +15,7 @@ interface Props {
 
 export function DishCard({ dish, status, qty, atMax, onAdd, onRemove }: Props) {
   const unavailable = status === 'unavailable'
+  const [imageError, setImageError] = useState(false)
 
   return (
     <div
@@ -27,8 +29,13 @@ export function DishCard({ dish, status, qty, atMax, onAdd, onRemove }: Props) {
       className={`rounded-xl border border-outline-variant bg-surface-container-lowest overflow-hidden cursor-pointer select-none active:scale-[0.98] transition-transform ${unavailable ? 'opacity-50' : ''}`}
     >
       <div className="aspect-[4/3] bg-surface-container-high flex items-center justify-center">
-        {dish.image_url ? (
-          <img src={dish.image_url} alt={dish.name_vi} className="w-full h-full object-cover" />
+        {dish.image_url && !imageError ? (
+          <img
+            src={dish.image_url}
+            alt={dish.name_vi}
+            className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
+          />
         ) : (
           <span className="material-symbols-outlined text-[32px] text-on-surface-variant" aria-hidden>
             restaurant
