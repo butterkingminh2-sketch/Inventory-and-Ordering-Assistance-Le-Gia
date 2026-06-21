@@ -116,7 +116,7 @@ export default function KitchenPage() {
                   <li key={oi.id} className="flex justify-between text-body-lg font-medium text-on-surface">
                     <span>
                       {oi.dish.name_vi}
-                      {oi.note && <span className="block text-label-en font-bold text-error">{oi.note}</span>}
+                      {oi.note && <span className="block text-label-en font-bold text-tertiary">Lưu ý: {oi.note}</span>}
                     </span>
                     <span className="font-black text-primary">×{oi.qty}</span>
                   </li>
