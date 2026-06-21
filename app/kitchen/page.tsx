@@ -85,7 +85,7 @@ export default function KitchenPage() {
             key={order.id}
             role="button"
             tabIndex={0}
-            aria-label={`Đánh dấu xong — ${order.table.label}`}
+            aria-label={`Đánh dấu xong — ${order.table.label}${isAddOn ? ', đơn mới' : ''}`}
             onClick={() => handleXong(order.id)}
             onKeyDown={e => {
               if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleXong(order.id) }
