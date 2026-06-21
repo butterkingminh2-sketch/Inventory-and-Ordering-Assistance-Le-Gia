@@ -49,6 +49,16 @@ export default function KhoPage() {
     await applyStockChange([{ item_id: itemId, delta }], 'manual_correction', user.id)
   }
 
+  async function handleSetQuantity(itemId: string, newQuantity: number) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const item = items.find(i => i.id === itemId)
+    if (!item) return
+    const delta = newQuantity - num(item.quantity)
+    if (delta === 0) return
+    await applyStockChange([{ item_id: itemId, delta }], 'count', user.id)
+  }
+
   const problemItems = items.filter(i => num(i.quantity) <= num(i.low_threshold))
   const outCount = items.filter(i => num(i.quantity) <= 0).length
   const lowCount = problemItems.length - outCount
@@ -64,7 +74,7 @@ export default function KhoPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-stack-lg">
         {items.map(item => (
-          <IngredientCard key={item.id} item={item} onAdjust={handleAdjust} />
+          <IngredientCard key={item.id} item={item} onAdjust={handleAdjust} onSetQuantity={handleSetQuantity} />
         ))}
       </div>
 

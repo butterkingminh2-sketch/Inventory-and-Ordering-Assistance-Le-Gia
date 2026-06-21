@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { num } from '@/lib/types'
 import type { Item } from '@/lib/types'
+import { QuantityInput } from './quantity-input'
 
 type Status = 'sufficient' | 'low' | 'out'
 
@@ -34,11 +36,13 @@ const qtyColor = {
 interface Props {
   item: Item
   onAdjust: (id: string, delta: 1 | -1) => void
+  onSetQuantity: (id: string, newQuantity: number) => void
 }
 
-export function IngredientCard({ item, onAdjust }: Props) {
+export function IngredientCard({ item, onAdjust, onSetQuantity }: Props) {
   const status = getStatus(item)
   const qty = num(item.quantity)
+  const [editing, setEditing] = useState(false)
 
   return (
     <article className={cardWrapper[status]}>
@@ -56,7 +60,25 @@ export function IngredientCard({ item, onAdjust }: Props) {
 
       <div className="flex items-center justify-between">
         <div>
-          <span className={`text-[32px] font-black leading-none ${qtyColor[status]}`}>{qty}</span>
+          {editing ? (
+            <QuantityInput
+              value={qty}
+              unit={item.unit}
+              autoFocus
+              inputClassName="w-24 border border-outline-variant rounded-lg px-2 py-1 text-[28px] font-black text-primary bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary"
+              onConfirm={newQty => { onSetQuantity(item.id, newQty); setEditing(false) }}
+              onCancel={() => setEditing(false)}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              aria-label={`Sửa số lượng ${item.name_vi}`}
+              className={`text-[32px] font-black leading-none ${qtyColor[status]} border-b-2 border-dashed border-current`}
+            >
+              {qty}
+            </button>
+          )}
           {' '}
           <span className="text-label-en text-on-surface-variant">{item.unit}</span>
         </div>
