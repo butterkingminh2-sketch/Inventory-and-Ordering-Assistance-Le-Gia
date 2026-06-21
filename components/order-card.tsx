@@ -44,7 +44,10 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder }: Props) {
         <ul className="space-y-1 pt-1">
           {order.order_items.map(oi => (
             <li key={oi.id} className="flex justify-between text-body-md text-on-surface">
-              <span>{oi.dish.name_vi}</span>
+              <span>
+                {oi.dish.name_vi}
+                {oi.note && <span className="block text-label-en text-on-surface-variant">{oi.note}</span>}
+              </span>
               <span className="font-bold text-primary">×{oi.qty}</span>
             </li>
           ))}
