@@ -78,7 +78,9 @@ export default function DatMonPage() {
     : dishes.filter(d => d.category === selectedCategory)
 
   const toppingDishes = dishes.filter(d => d.is_topping)
-  const panelToppings = panelDish ? sortToppingsByRelevance(panelDish, toppingDishes, recipes) : []
+  const panelToppings = panelDish
+    ? sortToppingsByRelevance(panelDish, toppingDishes.filter(d => d.id !== panelDish.id), recipes)
+    : []
 
   function adjustQty(dishId: string, delta: 1 | -1, options?: { bypassCap?: boolean }) {
     setQuantities(prev => {
