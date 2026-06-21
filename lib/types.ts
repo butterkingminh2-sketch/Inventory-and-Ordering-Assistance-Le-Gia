@@ -1,5 +1,7 @@
 export type UserRole = 'foh' | 'kitchen' | 'manager' | 'register'
 export type OrderStatus = 'pending' | 'ready' | 'delivered' | 'cancelled'
+export type ItemUnit = 'g' | 'ml' | 'gói' | 'phần' | 'miếng' | 'bó' | 'viên' | 'chai'
+export const ITEM_UNITS: ItemUnit[] = ['g', 'ml', 'gói', 'phần', 'miếng', 'bó', 'viên', 'chai']
 
 /** PostgREST serializes Postgres `numeric` columns as strings. Call parseFloat() or Number() before arithmetic. */
 export function num(v: number | string): number {
@@ -17,7 +19,7 @@ export interface Item {
   branch_id: string
   name_vi: string
   name_en: string | null
-  unit: string
+  unit: ItemUnit
   quantity: number | string
   low_threshold: number | string
   is_active: boolean

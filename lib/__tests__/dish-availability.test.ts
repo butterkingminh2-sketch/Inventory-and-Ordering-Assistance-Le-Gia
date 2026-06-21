@@ -6,7 +6,7 @@ const items: Item[] = [
   { id: 'item-gio',     quantity: 5, low_threshold: 3, branch_id: '', name_vi: 'Giò',     name_en: null, unit: 'phần', is_active: true, created_at: '' },
   { id: 'item-moc',     quantity: 2, low_threshold: 3, branch_id: '', name_vi: 'Mọc',     name_en: null, unit: 'phần', is_active: true, created_at: '' },
   { id: 'item-dau-hu',  quantity: 0, low_threshold: 2, branch_id: '', name_vi: 'Đậu hũ',  name_en: null, unit: 'miếng', is_active: true, created_at: '' },
-  { id: 'item-bun',     quantity: 5, low_threshold: 1, branch_id: '', name_vi: 'Bún',     name_en: null, unit: 'kg',   is_active: true, created_at: '' },
+  { id: 'item-bun',     quantity: 5, low_threshold: 1, branch_id: '', name_vi: 'Bún',     name_en: null, unit: 'g',    is_active: true, created_at: '' },
 ]
 
 const recipes: RecipeLine[] = [

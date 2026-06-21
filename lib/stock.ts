@@ -34,7 +34,7 @@ export function calculateDecrements(
 /** Calls the apply_stock_change RPC. Returns item_ids that were floored at 0. */
 export async function applyStockChange(
   changes: StockChange[],
-  reason: 'order' | 'manual_correction' | 'cancellation',
+  reason: 'order' | 'manual_correction' | 'cancellation' | 'count',
   userId: string,
   orderId?: string
 ): Promise<StockChangeResult> {
