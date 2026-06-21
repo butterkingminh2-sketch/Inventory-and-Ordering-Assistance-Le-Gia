@@ -92,8 +92,11 @@ export function AppShell({ role, defaultBranchId, fullName, children }: Props) {
         <SidebarNav role={role} readyCount={readyCount} />
       </aside>
 
-      {/* Main content */}
-      <main className="mt-touch-target-min md:ml-64 p-margin-mobile md:p-margin-tablet lg:p-margin-desktop pb-touch-target-min md:pb-0">
+      {/* Main content — scrolls internally so the native scrollbar is scoped
+          to this region, not the whole page (which would otherwise render
+          at the outer viewport edge, outside the fixed header/sidebar's
+          stacking context entirely). */}
+      <main className="mt-touch-target-min md:ml-64 h-[calc(100vh-var(--spacing-touch-target-min))] overflow-y-auto p-margin-mobile md:p-margin-tablet lg:p-margin-desktop pb-touch-target-min md:pb-margin-desktop">
         {children}
       </main>
 

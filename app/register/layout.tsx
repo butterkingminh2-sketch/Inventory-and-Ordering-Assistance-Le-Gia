@@ -19,8 +19,8 @@ export default async function RegisterLayout({ children }: { children: React.Rea
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <header className="sticky top-0 z-40 flex items-center justify-between gap-3 px-gutter min-h-touch-target-min bg-surface border-b border-outline-variant">
+    <div className="h-full flex flex-col bg-background">
+      <header className="flex items-center justify-between gap-3 px-gutter min-h-touch-target-min bg-surface border-b border-outline-variant">
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-[22px] text-on-surface-variant" aria-hidden>
             point_of_sale
@@ -33,7 +33,7 @@ export default async function RegisterLayout({ children }: { children: React.Rea
           <AccountMenu fullName={profile.full_name} role={profile.role} />
         </div>
       </header>
-      <main className="flex-1 p-margin-mobile md:p-margin-tablet">{children}</main>
+      <main className="flex-1 overflow-y-auto p-margin-mobile md:p-margin-tablet">{children}</main>
     </div>
   )
 }
