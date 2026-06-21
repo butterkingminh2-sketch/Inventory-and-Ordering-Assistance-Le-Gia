@@ -5,9 +5,10 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { createClient } from '@/lib/supabase/client'
 import { BranchContext } from '../app-shell'
 import { calculateDecrements } from '@/lib/stock'
-import { getDateRangeStart, rankByQuantity, rankByRevenue, getRestockAlerts, getDailyRevenue } from '@/lib/analytics'
+import { getDateRangeStart, getPriorRangeStart, rankByQuantity, leastByQuantity, rankByRevenue, getRestockAlerts, getDailyRevenue } from '@/lib/analytics'
 import type { RestockAlert } from '@/lib/analytics'
 import { ChatPanel } from '@/components/chat-panel'
+import { num } from '@/lib/types'
 import type { Dish, Item, RecipeLine, UserRole } from '@/lib/types'
 
 interface OrderWithLines {
@@ -36,6 +37,7 @@ export default function AnalyticsPage() {
   const [role, setRole] = useState<UserRole | null>(null)
   const [chatDraft, setChatDraft] = useState<string | null>(null)
   const [daysInRange, setDaysInRange] = useState(1)
+  const [priorRevenue, setPriorRevenue] = useState<number | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -52,13 +54,21 @@ export default function AnalyticsPage() {
     async function load() {
       const now = new Date()
       const rangeStart = getDateRangeStart(now, preset)
-      const [ordersRes, dishesRes, itemsRes, recipesRes] = await Promise.all([
+      const priorRangeStart = getPriorRangeStart(rangeStart, preset)
+      const [ordersRes, priorOrdersRes, dishesRes, itemsRes, recipesRes] = await Promise.all([
         supabase
           .from('orders')
           .select('created_at, order_items(dish_id, qty, price_at_order)')
           .eq('branch_id', branchId)
           .neq('status', 'cancelled')
           .gte('created_at', rangeStart.toISOString()),
+        supabase
+          .from('orders')
+          .select('order_items(qty, price_at_order)')
+          .eq('branch_id', branchId)
+          .neq('status', 'cancelled')
+          .gte('created_at', priorRangeStart.toISOString())
+          .lt('created_at', rangeStart.toISOString()),
         supabase.from('dishes').select('*').eq('branch_id', branchId),
         supabase.from('items').select('*').eq('branch_id', branchId).eq('is_active', true),
         supabase.from('recipe_lines').select('*'),
@@ -68,6 +78,12 @@ export default function AnalyticsPage() {
       // same race class already found and fixed in ChatPanel's loadMessages.
       if (cancelled) return
       if (ordersRes.data) setOrders(ordersRes.data)
+      if (priorOrdersRes.data) {
+        const total = priorOrdersRes.data
+          .flatMap(o => o.order_items)
+          .reduce((sum, oi) => sum + oi.qty * num(oi.price_at_order), 0)
+        setPriorRevenue(total)
+      }
       if (dishesRes.data) setDishes(dishesRes.data)
       if (itemsRes.data) setItems(itemsRes.data)
       if (recipesRes.data) setRecipes(recipesRes.data)
@@ -80,8 +96,15 @@ export default function AnalyticsPage() {
 
   const orderLines = orders.flatMap(o => o.order_items)
   const topByQty = rankByQuantity(orderLines, dishes, TOP_N)
+  const bottomByQty = leastByQuantity(orderLines, dishes, TOP_N)
   const topByRevenue = rankByRevenue(orderLines, dishes, TOP_N)
   const dailyRevenue = getDailyRevenue(orders)
+
+  const currentRevenue = orderLines.reduce((sum, l) => sum + l.qty * num(l.price_at_order), 0)
+  const percentChange = priorRevenue !== null && priorRevenue > 0
+    ? ((currentRevenue - priorRevenue) / priorRevenue) * 100
+    : null
+  const averageOrderValue = orders.length > 0 ? currentRevenue / orders.length : 0
 
   const consumption = calculateDecrements(orderLines, recipes, true)
   const consumptionByItemId: Record<string, number> = {}
@@ -109,6 +132,22 @@ export default function AnalyticsPage() {
             {PRESET_LABELS[p]}
           </button>
         ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-stack-lg mb-stack-lg">
+        <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg">
+          <p className="text-label-en text-on-surface-variant mb-1">Doanh thu</p>
+          <p className="text-headline-md font-black text-on-surface">{currentRevenue.toLocaleString('vi-VN')}đ</p>
+          {percentChange !== null && (
+            <p className={`text-label-en font-bold mt-1 ${percentChange >= 0 ? 'text-secondary' : 'text-error'}`}>
+              {percentChange >= 0 ? '↑' : '↓'} {Math.abs(percentChange).toFixed(0)}% so với kỳ trước
+            </p>
+          )}
+        </div>
+        <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg">
+          <p className="text-label-en text-on-surface-variant mb-1">Giá trị đơn trung bình</p>
+          <p className="text-headline-md font-black text-on-surface">{averageOrderValue.toLocaleString('vi-VN')}đ</p>
+        </div>
       </div>
 
       {alerts.length > 0 && (
@@ -152,7 +191,7 @@ export default function AnalyticsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-stack-lg">
         <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg">
           <p className="text-label-vi font-bold text-on-surface mb-stack-md">Bán chạy (số lượng)</p>
           {topByQty.length === 0 ? (
@@ -179,6 +218,22 @@ export default function AnalyticsPage() {
                 <li key={r.dish.id} className="flex justify-between text-label-vi text-on-surface">
                   <span>{r.dish.name_vi}</span>
                   <span className="font-bold text-primary">{r.revenue.toLocaleString('vi-VN')}đ</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg">
+          <p className="text-label-vi font-bold text-on-surface mb-stack-md">Bán ít nhất</p>
+          {bottomByQty.length === 0 ? (
+            <p className="text-label-en text-on-surface-variant">Chưa có món nào</p>
+          ) : (
+            <ul className="space-y-1">
+              {bottomByQty.map(r => (
+                <li key={r.dish.id} className="flex justify-between text-label-vi text-on-surface">
+                  <span>{r.dish.name_vi}</span>
+                  <span className="font-bold text-tertiary">{r.qty}</span>
                 </li>
               ))}
             </ul>

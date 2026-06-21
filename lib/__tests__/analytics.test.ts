@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getDateRangeStart, rankByQuantity, rankByRevenue, getDaysRemaining, getRestockAlerts, getDailyRevenue } from '../analytics'
+import { getDateRangeStart, getPriorRangeStart, rankByQuantity, leastByQuantity, rankByRevenue, getDaysRemaining, getRestockAlerts, getDailyRevenue } from '../analytics'
 import { getPublicChannelCutoff } from '../chat'
 import type { Dish, Item } from '../types'
 
@@ -33,6 +33,23 @@ describe('getDateRangeStart', () => {
   })
 })
 
+describe('getPriorRangeStart', () => {
+  it('"today" is the current range start minus 1 day', () => {
+    const rangeStart = new Date(2026, 5, 21, 6, 0, 0)
+    expect(getPriorRangeStart(rangeStart, 'today')).toEqual(new Date(2026, 5, 20, 6, 0, 0))
+  })
+
+  it('"7d" is the current range start minus 7 days', () => {
+    const rangeStart = new Date(2026, 5, 21, 6, 0, 0)
+    expect(getPriorRangeStart(rangeStart, '7d')).toEqual(new Date(2026, 5, 14, 6, 0, 0))
+  })
+
+  it('"30d" is the current range start minus 30 days', () => {
+    const rangeStart = new Date(2026, 5, 21, 6, 0, 0)
+    expect(getPriorRangeStart(rangeStart, '30d')).toEqual(new Date(2026, 4, 22, 6, 0, 0))
+  })
+})
+
 describe('rankByQuantity', () => {
   it('aggregates multiple order lines for the same dish and sorts descending', () => {
     const orderLines = [
@@ -55,6 +72,22 @@ describe('rankByQuantity', () => {
   it('skips a dish_id with no matching dish', () => {
     const orderLines = [{ dish_id: 'dish-deleted', qty: 99 }, { dish_id: 'dish-moc-them', qty: 1 }]
     expect(rankByQuantity(orderLines, dishes, 5)).toEqual([{ dish: mocThem, qty: 1 }])
+  })
+})
+
+describe('leastByQuantity', () => {
+  it('includes a dish with zero orders, sorted to the bottom group first', () => {
+    const orderLines = [{ dish_id: 'dish-moc-them', qty: 10 }]
+    const result = leastByQuantity(orderLines, dishes, 5)
+    expect(result).toEqual([
+      { dish: bunRieuBo, qty: 0 },
+      { dish: mocThem, qty: 10 },
+    ])
+  })
+
+  it('truncates to the given limit', () => {
+    const orderLines = [{ dish_id: 'dish-moc-them', qty: 10 }]
+    expect(leastByQuantity(orderLines, dishes, 1)).toEqual([{ dish: bunRieuBo, qty: 0 }])
   })
 })
 

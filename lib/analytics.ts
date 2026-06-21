@@ -18,6 +18,20 @@ export function getDateRangeStart(now: Date, preset: DateRangePreset): Date {
   return start
 }
 
+/**
+ * Pure function — no DB calls. Start boundary for the period immediately
+ * preceding the current one, same length, ending exactly where the current
+ * period starts — for a "vs. previous period" comparison. For "today" this
+ * compares against the whole previous day, not the same elapsed hours so
+ * far — a deliberate simplification, not an attempt at an hour-for-hour match.
+ */
+export function getPriorRangeStart(rangeStart: Date, preset: DateRangePreset): Date {
+  const daysBack = preset === 'today' ? 1 : preset === '7d' ? 7 : 30
+  const start = new Date(rangeStart)
+  start.setDate(start.getDate() - daysBack)
+  return start
+}
+
 export interface DishRanking {
   dish: Dish
   qty: number
@@ -40,6 +54,30 @@ export function rankByQuantity(
     if (dish) ranked.push({ dish, qty })
   }
   return ranked.sort((a, b) => b.qty - a.qty).slice(0, limit)
+}
+
+/**
+ * Pure function — no DB calls. Unlike rankByQuantity, starts every dish at 0
+ * so dishes with zero orders in the period are included and sort to the
+ * very bottom — those are the most interesting case for "what's not selling."
+ */
+export function leastByQuantity(
+  orderLines: Array<{ dish_id: string; qty: number }>,
+  dishes: Dish[],
+  limit: number,
+): DishRanking[] {
+  const totals: Record<string, number> = {}
+  for (const dish of dishes) totals[dish.id] = 0
+  for (const { dish_id, qty } of orderLines) {
+    if (dish_id in totals) totals[dish_id] += qty
+  }
+  const dishMap = new Map(dishes.map(d => [d.id, d]))
+  const ranked: DishRanking[] = []
+  for (const [dish_id, qty] of Object.entries(totals)) {
+    const dish = dishMap.get(dish_id)
+    if (dish) ranked.push({ dish, qty })
+  }
+  return ranked.sort((a, b) => a.qty - b.qty).slice(0, limit)
 }
 
 export interface DishRevenue {
