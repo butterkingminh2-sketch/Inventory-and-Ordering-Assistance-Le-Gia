@@ -18,7 +18,7 @@ export default function SettingsPage() {
   const [tables, setTables]   = useState<Table[]>([])
 
   const [newItem,  setNewItem]  = useState({ name_vi: '', name_en: '', unit: '', low_threshold: 3 })
-  const [newDish,  setNewDish]  = useState({ name_vi: '', name_en: '', price: 0, category: '' })
+  const [newDish,  setNewDish]  = useState({ name_vi: '', name_en: '', price: 0, category: '', is_topping: false })
   const [newDishImage, setNewDishImage] = useState<File | null>(null)
   const [newLine,  setNewLine]  = useState({ item_id: '', qty_per_serving: 1 })
   const [newTable, setNewTable] = useState({ label: '', section: '' })
@@ -83,9 +83,14 @@ export default function SettingsPage() {
       .select().single()
     if (data) {
       setDishes(p => [...p, data])
-      setNewDish({ name_vi: '', name_en: '', price: 0, category: '' })
+      setNewDish({ name_vi: '', name_en: '', price: 0, category: '', is_topping: false })
       setNewDishImage(null)
     }
+  }
+
+  async function updateDishIsTopping(id: string, is_topping: boolean) {
+    await supabase.from('dishes').update({ is_topping }).eq('id', id)
+    setDishes(p => p.map(d => d.id === id ? { ...d, is_topping } : d))
   }
 
   async function updateDishPrice(id: string, price: number) {
@@ -249,6 +254,11 @@ export default function SettingsPage() {
             <input type="file" accept="image/*"
               onChange={e => setNewDishImage(e.target.files?.[0] ?? null)}
               className="text-label-en" />
+            <label className="flex items-center gap-1 text-label-en text-on-surface-variant">
+              <input type="checkbox" checked={newDish.is_topping}
+                onChange={e => setNewDish(p => ({ ...p, is_topping: e.target.checked }))} />
+              Món gọi thêm
+            </label>
             <button onClick={addDish} className={btnPrimary}>+ Thêm</button>
           </div>
           <ul className="divide-y divide-outline-variant">
@@ -269,6 +279,11 @@ export default function SettingsPage() {
                     Đổi ảnh
                     <input type="file" accept="image/*" className="hidden"
                       onChange={e => { const f = e.target.files?.[0]; if (f) updateDishImage(dish.id, f) }} />
+                  </label>
+                  <label className="flex items-center gap-1 text-label-en text-on-surface-variant">
+                    <input type="checkbox" checked={dish.is_topping}
+                      onChange={e => updateDishIsTopping(dish.id, e.target.checked)} />
+                    Gọi thêm
                   </label>
                   <span className={dish.is_active ? badgeActive : badgeInactive}>
                     {dish.is_active ? 'Hoạt động' : 'Tắt'}
