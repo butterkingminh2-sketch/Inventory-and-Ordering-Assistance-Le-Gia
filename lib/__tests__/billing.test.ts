@@ -34,6 +34,25 @@ describe('groupOrdersByTable', () => {
     expect(bills[0].canCheckout).toBe(true)
   })
 
+  it('passes a non-null note through to the bill item', () => {
+    const orders: OrderWithDetails[] = [
+      {
+        ...baseOrder,
+        id: 'order-1',
+        table_id: 'table-1',
+        status: 'delivered',
+        table: { label: 'Bàn 1' },
+        order_items: [
+          { id: 'oi-1', order_id: 'order-1', dish_id: 'dish-1', qty: 1, price_at_order: 65000, note: 'không đậu hũ', dish: { name_vi: 'Bún riêu', name_en: null } },
+        ],
+      },
+    ]
+
+    const bills = groupOrdersByTable(orders)
+
+    expect(bills[0].items[0].note).toBe('không đậu hũ')
+  })
+
   it('sums across multiple separate orders for the same table', () => {
     const orders: OrderWithDetails[] = [
       {

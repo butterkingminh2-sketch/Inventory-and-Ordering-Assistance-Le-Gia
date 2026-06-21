@@ -126,7 +126,12 @@ export default function RegisterPage() {
         <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg mb-stack-lg space-y-2">
           {selectedBill.items.map((item, i) => (
             <div key={i} className="flex justify-between text-body-lg text-on-surface">
-              <span>{item.name_vi} ×{item.qty}</span>
+              <span>
+                {item.name_vi} ×{item.qty}
+                {item.note && (
+                  <span className="block text-label-en text-on-surface-variant">{item.note}</span>
+                )}
+              </span>
               <span className="font-bold">{item.lineTotal.toLocaleString('vi-VN')}đ</span>
             </div>
           ))}
@@ -164,7 +169,10 @@ export default function RegisterPage() {
           <hr className="border-dashed border-outline-variant my-2" />
           {receipt.items.map((item, i) => (
             <div key={i} className="flex justify-between">
-              <span>{item.name_vi} x{item.qty}</span>
+              <span>
+                {item.name_vi} x{item.qty}
+                {item.note && <span className="block">{item.note}</span>}
+              </span>
               <span>{item.lineTotal.toLocaleString('vi-VN')}</span>
             </div>
           ))}

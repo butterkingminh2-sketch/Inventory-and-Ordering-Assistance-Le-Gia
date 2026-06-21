@@ -5,6 +5,7 @@ export interface TableBillItem {
   name_vi: string
   qty: number
   lineTotal: number
+  note: string | null
 }
 
 export interface TableBill {
@@ -33,6 +34,7 @@ export function groupOrdersByTable(orders: OrderWithDetails[]): TableBill[] {
         name_vi: oi.dish.name_vi,
         qty: oi.qty,
         lineTotal: oi.qty * num(oi.price_at_order),
+        note: oi.note,
       }))
     )
 
