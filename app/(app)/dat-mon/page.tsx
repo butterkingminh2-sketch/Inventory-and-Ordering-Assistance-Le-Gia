@@ -54,6 +54,9 @@ export default function DatMonPage() {
     ? tables.filter(t => t.section === selectedSection)
     : tables
 
+  // Unlike selectedSection above, selectedCategory never auto-selects away from
+  // null ("Tất cả") — an uncategorized dish must never become invisible just
+  // because other categories exist.
   const categories = [...new Set(dishes.map(d => d.category).filter((c): c is string => c !== null))]
   const visibleDishes = selectedCategory === null
     ? dishes
