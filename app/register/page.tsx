@@ -3,25 +3,15 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { groupOrdersByTable } from '@/lib/billing'
-import type { TableBill, TableBillItem } from '@/lib/billing'
+import type { TableBill } from '@/lib/billing'
 import { buildVietQrUrl } from '@/lib/vietqr'
-import type { OrderWithDetails } from '@/lib/types'
-
-type Step = 'list' | 'confirm' | 'receipt'
-
-interface Receipt {
-  tableLabel: string
-  items: TableBillItem[]
-  total: number
-  paidAt: string
-}
+import type { OrderWithDetails, PaymentMethod } from '@/lib/types'
 
 export default function RegisterPage() {
   const [branchId, setBranchId] = useState<string | null>(null)
   const [bills, setBills] = useState<TableBill[]>([])
-  const [step, setStep] = useState<Step>('list')
-  const [selectedBill, setSelectedBill] = useState<TableBill | null>(null)
-  const [receipt, setReceipt] = useState<Receipt | null>(null)
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const supabase = createClient()
 
@@ -69,19 +59,21 @@ export default function RegisterPage() {
     return () => { supabase.removeChannel(channel) }
   }, [branchId, fetchBills])
 
-  function handleSelectTable(bill: TableBill) {
-    if (!bill.canCheckout) return
-    setSelectedBill(bill)
+  const effectiveTableId = selectedTableId ?? bills[0]?.tableId ?? null
+  const selectedBill = bills.find(b => b.tableId === effectiveTableId) ?? null
+
+  function handleSelectTable(tableId: string) {
+    setSelectedTableId(tableId)
+    setPaymentMethod(null)
     setErrorMsg(null)
-    setStep('confirm')
   }
 
-  async function handleConfirmPay() {
-    if (!selectedBill || !branchId) return
+  async function handleComplete() {
+    if (!selectedBill || !branchId || !paymentMethod) return
 
     const { data, error } = await supabase
       .from('orders')
-      .update({ paid_at: new Date().toISOString() })
+      .update({ paid_at: new Date().toISOString(), payment_method: paymentMethod })
       .in('id', selectedBill.orderIds)
       .eq('branch_id', branchId)
       .is('paid_at', null)
@@ -89,161 +81,165 @@ export default function RegisterPage() {
 
     if (error || !data || data.length !== selectedBill.orderIds.length) {
       setErrorMsg('Bàn này đã được thanh toán hoặc có lỗi xảy ra. Vui lòng thử lại.')
-      setStep('list')
-      setSelectedBill(null)
       fetchBills(branchId)
       return
     }
 
-    setReceipt({
-      tableLabel: selectedBill.tableLabel,
-      items: selectedBill.items,
-      total: selectedBill.total,
-      paidAt: new Date().toLocaleString('vi-VN'),
-    })
-    setStep('receipt')
-  }
-
-  function handleBackToList() {
-    setSelectedBill(null)
-    setReceipt(null)
+    setSelectedTableId(null)
+    setPaymentMethod(null)
     setErrorMsg(null)
-    setStep('list')
-    if (branchId) fetchBills(branchId)
+    fetchBills(branchId)
   }
 
-  if (step === 'confirm' && selectedBill) {
-    return (
-      <div className="max-w-lg mx-auto">
-        <div className="flex items-center gap-3 mb-stack-lg">
-          <button onClick={handleBackToList} className="text-primary text-label-vi font-bold flex items-center gap-1">
-            <span className="material-symbols-outlined text-[18px]" aria-hidden>arrow_back</span>
-            Bàn
-          </button>
-          <h2 className="text-headline-md font-bold text-on-surface">{selectedBill.tableLabel}</h2>
-        </div>
-
-        <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg mb-stack-lg space-y-2">
-          {selectedBill.items.map((item, i) => (
-            <div key={i} className="flex justify-between text-body-lg text-on-surface">
-              <span>
-                {item.name_vi} ×{item.qty}
-                {item.note && (
-                  <span className="block text-label-en text-on-surface-variant">{item.note}</span>
-                )}
-              </span>
-              <span className="font-bold">{item.lineTotal.toLocaleString('vi-VN')}đ</span>
-            </div>
-          ))}
-          <hr className="border-outline-variant" />
-          <div className="flex justify-between text-headline-md font-black text-primary">
-            <span>TỔNG</span>
-            <span>{selectedBill.total.toLocaleString('vi-VN')}đ</span>
-          </div>
-        </div>
-
-        <button
-          onClick={handleConfirmPay}
-          className="w-full bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min shadow-md"
-        >
-          Xác nhận thanh toán
-        </button>
-      </div>
-    )
+  const bank = {
+    bankBin: process.env.NEXT_PUBLIC_VIETQR_BANK_BIN ?? '',
+    accountNo: process.env.NEXT_PUBLIC_VIETQR_ACCOUNT_NO ?? '',
+    accountName: process.env.NEXT_PUBLIC_VIETQR_ACCOUNT_NAME ?? '',
   }
+  const qrUrl = selectedBill ? buildVietQrUrl(bank, selectedBill.total, `LeGia ${selectedBill.tableLabel}`) : null
 
-  if (step === 'receipt' && receipt) {
-    const bank = {
-      bankBin: process.env.NEXT_PUBLIC_VIETQR_BANK_BIN ?? '',
-      accountNo: process.env.NEXT_PUBLIC_VIETQR_ACCOUNT_NO ?? '',
-      accountName: process.env.NEXT_PUBLIC_VIETQR_ACCOUNT_NAME ?? '',
-    }
-    const qrUrl = buildVietQrUrl(bank, receipt.total, `LeGia ${receipt.tableLabel}`)
-
-    return (
-      <div className="max-w-sm mx-auto">
-        <div id="receipt-print-area" className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg font-mono text-[13px] text-on-surface">
-          <p className="text-center font-bold">LÊ GIA - BÚN RIÊU</p>
-          <p className="text-center">{receipt.paidAt}</p>
-          <p className="mt-2">{receipt.tableLabel}</p>
-          <hr className="border-dashed border-outline-variant my-2" />
-          {receipt.items.map((item, i) => (
-            <div key={i} className="flex justify-between">
-              <span>
-                {item.name_vi} x{item.qty}
-                {item.note && <span className="block">{item.note}</span>}
-              </span>
-              <span>{item.lineTotal.toLocaleString('vi-VN')}</span>
-            </div>
-          ))}
-          <hr className="border-dashed border-outline-variant my-2" />
-          <div className="flex justify-between font-bold text-[15px]">
-            <span>TỔNG</span>
-            <span>{receipt.total.toLocaleString('vi-VN')}đ</span>
-          </div>
-          <div className="text-center mt-3">
-            <img src={qrUrl} alt="VietQR" width={160} height={160} className="mx-auto" />
-            <p className="mt-1">Quét để chuyển khoản</p>
-            <p>{bank.accountName} - {bank.accountNo}</p>
-          </div>
-          <p className="text-center mt-3 text-on-surface-variant">Cảm ơn quý khách!</p>
-        </div>
-
-        <div className="flex gap-2 mt-stack-lg">
-          <button
-            onClick={() => window.print()}
-            className="flex-1 bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min"
-          >
-            In hóa đơn
-          </button>
-          <button
-            onClick={handleBackToList}
-            className="flex-1 bg-surface-container text-on-surface rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min"
-          >
-            Xong
-          </button>
-        </div>
-      </div>
-    )
-  }
+  const paymentBtn = (active: boolean) =>
+    `flex-1 min-h-touch-target-min rounded-lg text-label-vi font-bold transition-colors ${
+      active ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+    }`
 
   return (
-    <div className="max-w-lg mx-auto space-y-stack-md">
+    <div className="flex flex-col h-full">
       <h2 className="text-headline-md font-bold text-on-surface mb-stack-lg">
         Thu ngân
         <span className="block text-label-en font-normal text-on-surface-variant">Register</span>
       </h2>
 
       {errorMsg && (
-        <p className="text-error text-label-vi font-bold bg-error-container rounded-lg p-stack-md">{errorMsg}</p>
+        <p className="text-error text-label-vi font-bold bg-error-container rounded-lg p-stack-md mb-stack-lg">{errorMsg}</p>
       )}
 
-      {bills.length === 0 && (
+      {bills.length === 0 ? (
         <p className="text-on-surface-variant text-center mt-16 text-label-vi">Không có bàn nào đang mở</p>
-      )}
-
-      {bills.map(bill => (
-        <button
-          key={bill.tableId}
-          onClick={() => handleSelectTable(bill)}
-          disabled={!bill.canCheckout}
-          className={`w-full text-left rounded-xl border p-stack-lg transition-all ${
-            bill.canCheckout
-              ? 'border-outline-variant bg-surface-container-lowest hover:border-primary'
-              : 'border-outline-variant bg-surface-container opacity-60 cursor-not-allowed'
-          }`}
-        >
-          <div className="flex justify-between font-bold text-body-lg text-on-surface">
-            <span>{bill.tableLabel}</span>
-            <span>{bill.total.toLocaleString('vi-VN')}đ</span>
+      ) : (
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-[200px_1fr_300px] gap-stack-lg min-h-0">
+          {/* Table tabs */}
+          <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto pb-1">
+            {bills.map(bill => (
+              <button
+                key={bill.tableId}
+                onClick={() => handleSelectTable(bill.tableId)}
+                disabled={!bill.canCheckout}
+                className={`text-left rounded-xl border p-stack-md min-h-touch-target-min whitespace-nowrap md:whitespace-normal transition-all ${
+                  bill.tableId === effectiveTableId
+                    ? 'border-primary bg-primary-fixed'
+                    : bill.canCheckout
+                      ? 'border-outline-variant bg-surface-container-lowest hover:border-primary'
+                      : 'border-outline-variant bg-surface-container opacity-60 cursor-not-allowed'
+                }`}
+              >
+                <div className="flex justify-between gap-2 font-bold text-label-vi text-on-surface">
+                  <span>{bill.tableLabel}</span>
+                  <span>{bill.total.toLocaleString('vi-VN')}đ</span>
+                </div>
+                {!bill.canCheckout && (
+                  <p className="text-label-en text-on-surface-variant mt-1">Còn món chưa giao</p>
+                )}
+              </button>
+            ))}
           </div>
-          <p className="text-label-en text-on-surface-variant mt-1">
-            {bill.canCheckout
-              ? `${bill.items.length} món · Tất cả đã giao`
-              : 'Còn món chưa giao — chưa thể thanh toán'}
-          </p>
-        </button>
-      ))}
+
+          {/* Bill items */}
+          <div className="overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg">
+            {selectedBill && (
+              <>
+                <p className="font-bold text-headline-md text-on-surface mb-stack-md">{selectedBill.tableLabel}</p>
+                <div className="space-y-3">
+                  {selectedBill.items.map((item, i) => (
+                    <div key={i} className="flex justify-between items-start text-body-lg text-on-surface">
+                      <div>
+                        <span className="font-bold">{item.name_vi}</span>
+                        {item.toppings.map((t, ti) => (
+                          <span key={ti} className="block text-label-en text-on-surface-variant pl-stack-md">
+                            {t.name_vi}{t.qty > 1 ? ` ×${t.qty}` : ''}
+                          </span>
+                        ))}
+                        {item.note && (
+                          <span className="block text-label-en text-on-surface-variant pl-stack-md">{item.note}</span>
+                        )}
+                      </div>
+                      <span className="font-bold shrink-0">{item.lineTotal.toLocaleString('vi-VN')}đ</span>
+                    </div>
+                  ))}
+                </div>
+                <hr className="border-outline-variant my-stack-lg" />
+                <div className="flex justify-between text-headline-md font-black text-primary">
+                  <span>TỔNG</span>
+                  <span>{selectedBill.total.toLocaleString('vi-VN')}đ</span>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Payment + receipt + actions */}
+          <div className="flex flex-col gap-stack-lg">
+            <div className="flex gap-2">
+              <button onClick={() => setPaymentMethod('cash')} className={paymentBtn(paymentMethod === 'cash')}>
+                Tiền mặt
+              </button>
+              <button onClick={() => setPaymentMethod('transfer')} className={paymentBtn(paymentMethod === 'transfer')}>
+                Chuyển khoản
+              </button>
+            </div>
+
+            {selectedBill && qrUrl && (
+              <div id="receipt-print-area" className="flex-1 overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg font-mono text-[13px] text-on-surface">
+                <p className="text-center font-bold">LÊ GIA - BÚN RIÊU</p>
+                <p className="text-center">{new Date().toLocaleString('vi-VN')}</p>
+                <p className="mt-2">{selectedBill.tableLabel}</p>
+                <hr className="border-dashed border-outline-variant my-2" />
+                {selectedBill.items.map((item, i) => (
+                  <div key={i}>
+                    <div className="flex justify-between">
+                      <span>{item.name_vi} x{item.qty}</span>
+                      <span>{item.lineTotal.toLocaleString('vi-VN')}</span>
+                    </div>
+                    {item.toppings.map((t, ti) => (
+                      <div key={ti} className="flex justify-between pl-3">
+                        <span>{t.name_vi} x{t.qty}</span>
+                        <span>{t.lineTotal.toLocaleString('vi-VN')}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+                <hr className="border-dashed border-outline-variant my-2" />
+                <div className="flex justify-between font-bold text-[15px]">
+                  <span>TỔNG</span>
+                  <span>{selectedBill.total.toLocaleString('vi-VN')}đ</span>
+                </div>
+                <div className="text-center mt-3">
+                  <img src={qrUrl} alt="VietQR" width={160} height={160} className="mx-auto" />
+                  <p className="mt-1">Quét để chuyển khoản</p>
+                  <p>{bank.accountName} - {bank.accountNo}</p>
+                </div>
+                <p className="text-center mt-3 text-on-surface-variant">Cảm ơn quý khách!</p>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => window.print()}
+                disabled={!selectedBill}
+                className="flex-1 bg-surface-container text-on-surface rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min disabled:opacity-50"
+              >
+                In hóa đơn
+              </button>
+              <button
+                onClick={handleComplete}
+                disabled={!selectedBill?.canCheckout || !paymentMethod}
+                className="flex-1 bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min disabled:opacity-50 shadow-md"
+              >
+                Hoàn tất
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
