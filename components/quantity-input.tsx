@@ -64,6 +64,7 @@ export function QuantityInput({ value, unit, onConfirm, onCancel, autoFocus, inp
       {bigger ? (
         <button
           type="button"
+          onMouseDown={e => e.preventDefault()}
           onClick={handleToggle}
           className="text-label-en px-2 py-1 rounded-full bg-surface-container text-on-surface-variant font-bold"
         >
