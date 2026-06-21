@@ -32,6 +32,7 @@ export interface Dish {
   price: number | string
   category: string | null
   image_url: string | null
+  is_topping: boolean
   is_active: boolean
   created_at: string
 }
@@ -68,6 +69,7 @@ export interface OrderItem {
   dish_id: string
   qty: number
   price_at_order: number | string
+  note: string | null
 }
 
 export interface UserProfile {

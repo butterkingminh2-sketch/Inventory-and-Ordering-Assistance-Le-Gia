@@ -1,0 +1,2 @@
+ALTER TABLE dishes ADD COLUMN IF NOT EXISTS is_topping boolean NOT NULL DEFAULT false;
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS note text;

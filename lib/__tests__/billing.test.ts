@@ -20,7 +20,7 @@ describe('groupOrdersByTable', () => {
         status: 'delivered',
         table: { label: 'Bàn 1' },
         order_items: [
-          { id: 'oi-1', order_id: 'order-1', dish_id: 'dish-1', qty: 2, price_at_order: 65000, dish: { name_vi: 'Bún riêu', name_en: null } },
+          { id: 'oi-1', order_id: 'order-1', dish_id: 'dish-1', qty: 2, price_at_order: 65000, note: null, dish: { name_vi: 'Bún riêu', name_en: null } },
         ],
       },
     ]
@@ -43,7 +43,7 @@ describe('groupOrdersByTable', () => {
         status: 'delivered',
         table: { label: 'Bàn 1' },
         order_items: [
-          { id: 'oi-1', order_id: 'order-1', dish_id: 'dish-1', qty: 1, price_at_order: 65000, dish: { name_vi: 'Bún riêu', name_en: null } },
+          { id: 'oi-1', order_id: 'order-1', dish_id: 'dish-1', qty: 1, price_at_order: 65000, note: null, dish: { name_vi: 'Bún riêu', name_en: null } },
         ],
       },
       {
@@ -53,7 +53,7 @@ describe('groupOrdersByTable', () => {
         status: 'delivered',
         table: { label: 'Bàn 1' },
         order_items: [
-          { id: 'oi-2', order_id: 'order-2', dish_id: 'dish-2', qty: 3, price_at_order: 5000, dish: { name_vi: 'Trà đá', name_en: null } },
+          { id: 'oi-2', order_id: 'order-2', dish_id: 'dish-2', qty: 3, price_at_order: 5000, note: null, dish: { name_vi: 'Trà đá', name_en: null } },
         ],
       },
     ]
@@ -74,7 +74,7 @@ describe('groupOrdersByTable', () => {
         status: 'delivered',
         table: { label: 'Bàn 1' },
         order_items: [
-          { id: 'oi-1', order_id: 'order-1', dish_id: 'dish-1', qty: 1, price_at_order: 65000, dish: { name_vi: 'Bún riêu', name_en: null } },
+          { id: 'oi-1', order_id: 'order-1', dish_id: 'dish-1', qty: 1, price_at_order: 65000, note: null, dish: { name_vi: 'Bún riêu', name_en: null } },
         ],
       },
       {
@@ -84,7 +84,7 @@ describe('groupOrdersByTable', () => {
         status: 'pending',
         table: { label: 'Bàn 1' },
         order_items: [
-          { id: 'oi-2', order_id: 'order-2', dish_id: 'dish-2', qty: 1, price_at_order: 20000, dish: { name_vi: 'Chả', name_en: null } },
+          { id: 'oi-2', order_id: 'order-2', dish_id: 'dish-2', qty: 1, price_at_order: 20000, note: null, dish: { name_vi: 'Chả', name_en: null } },
         ],
       },
     ]
@@ -104,7 +104,7 @@ describe('groupOrdersByTable', () => {
         status: 'delivered',
         table: { label: 'Bàn 1' },
         order_items: [
-          { id: 'oi-1', order_id: 'order-1', dish_id: 'dish-1', qty: 1, price_at_order: 65000, dish: { name_vi: 'Bún riêu', name_en: null } },
+          { id: 'oi-1', order_id: 'order-1', dish_id: 'dish-1', qty: 1, price_at_order: 65000, note: null, dish: { name_vi: 'Bún riêu', name_en: null } },
         ],
       },
       {
@@ -114,7 +114,7 @@ describe('groupOrdersByTable', () => {
         status: 'cancelled',
         table: { label: 'Bàn 1' },
         order_items: [
-          { id: 'oi-2', order_id: 'order-2', dish_id: 'dish-2', qty: 5, price_at_order: 100000, dish: { name_vi: 'Mọc', name_en: null } },
+          { id: 'oi-2', order_id: 'order-2', dish_id: 'dish-2', qty: 5, price_at_order: 100000, note: null, dish: { name_vi: 'Mọc', name_en: null } },
         ],
       },
     ]
@@ -134,7 +134,7 @@ describe('groupOrdersByTable', () => {
         status: 'delivered',
         table: { label: 'Bàn 1' },
         order_items: [
-          { id: 'oi-1', order_id: 'order-1', dish_id: 'dish-1', qty: 1, price_at_order: 65000, dish: { name_vi: 'Bún riêu', name_en: null } },
+          { id: 'oi-1', order_id: 'order-1', dish_id: 'dish-1', qty: 1, price_at_order: 65000, note: null, dish: { name_vi: 'Bún riêu', name_en: null } },
         ],
       },
       {
@@ -144,7 +144,7 @@ describe('groupOrdersByTable', () => {
         status: 'delivered',
         table: { label: 'Bàn 2' },
         order_items: [
-          { id: 'oi-2', order_id: 'order-2', dish_id: 'dish-2', qty: 1, price_at_order: 40000, dish: { name_vi: 'Chả', name_en: null } },
+          { id: 'oi-2', order_id: 'order-2', dish_id: 'dish-2', qty: 1, price_at_order: 40000, note: null, dish: { name_vi: 'Chả', name_en: null } },
         ],
       },
     ]
