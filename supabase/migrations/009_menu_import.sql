@@ -59,6 +59,7 @@ FROM branches, (VALUES
   ('Chả ốc',           'Snail paste',          'g',    500),
   ('Xúc xích',         'Sausage',              'cái',  10),
   ('Tràng trứng gà non','Chicken oviduct',     'g',    500),
+  ('Quẩy',             'Fried dough stick',    'cái',  10),
   ('Thịt dải',         'Pork belly strip',     'g',    1000),
   ('Má heo',           'Pork cheek',           'g',    1000),
   ('Cocacola',         'Coca-Cola',            'lon',  10),
@@ -274,7 +275,7 @@ JOIN (VALUES
   -- Đồ gọi thêm
   ('Mọc thêm', 'Mọc', 1), ('Đậu mỡ chiên', 'Đậu mỡ', 1), ('Giò tai thêm', 'Giò tai', 1),
   ('Trứng vịt lộn', 'Trứng vịt lộn', 1), ('Bò thêm', 'Bò', 50), ('Tóp mỡ thêm', 'Tóp mỡ', 80),
-  ('Trứng gà ta trần', 'Trứng gà ta', 1),
+  ('Trứng gà ta trần', 'Trứng gà ta', 1), ('Quẩy', 'Quẩy', 1),
 
   -- Đồ gọi thêm lẩu
   ('Nhãn lẩu riêu (nhỏ)', 'Riêu cua', 3), ('Nhãn lẩu riêu (nhỏ)', 'Tóp mỡ', 100),
@@ -291,7 +292,12 @@ JOIN (VALUES
   ('Rau + nấm thêm lẩu', 'Rau lẩu', 300), ('Rau + nấm thêm lẩu', 'Nấm', 150),
   ('Nấm thêm lẩu', 'Nấm', 200), ('Váng đậu', 'Váng đậu', 100),
 
-  -- Lẩu mains
+  -- Lẩu mains (same composition as their "Nhãn lẩu" refill counterpart)
+  ('Lẩu riêu cua tóp mỡ (nhỏ)', 'Riêu cua', 3), ('Lẩu riêu cua tóp mỡ (nhỏ)', 'Tóp mỡ', 100),
+  ('Lẩu riêu cua tóp mỡ (to)', 'Riêu cua', 5), ('Lẩu riêu cua tóp mỡ (to)', 'Tóp mỡ', 180),
+  ('Lẩu ếch măng cay (nhỏ)', 'Ếch', 400), ('Lẩu ếch măng cay (to)', 'Ếch', 700),
+  ('Lẩu thái hải sản (nhỏ)', 'Tôm', 150), ('Lẩu thái hải sản (nhỏ)', 'Mực', 100), ('Lẩu thái hải sản (nhỏ)', 'Ngao', 150),
+  ('Lẩu thái hải sản (to)', 'Tôm', 250), ('Lẩu thái hải sản (to)', 'Mực', 180), ('Lẩu thái hải sản (to)', 'Ngao', 250),
   ('Lẩu gà', 'Gà', 1300),
 
   -- Món đặc trưng
