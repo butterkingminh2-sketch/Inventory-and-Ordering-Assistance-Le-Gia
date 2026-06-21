@@ -5,7 +5,19 @@ import { createClient } from '@/lib/supabase/client'
 import { getPublicChannelCutoff } from '@/lib/chat'
 import type { UserRole, MessageWithSender } from '@/lib/types'
 
-type Channel = 'public' | 'owner'
+type Channel = 'public' | 'owner' | 'kitchen'
+
+const CHANNEL_LABELS: Record<Channel, string> = {
+  public: 'Chung',
+  kitchen: 'Bếp',
+  owner: 'Chủ quán',
+}
+
+function availableChannels(role: UserRole): Channel[] {
+  if (role === 'owner') return ['owner']
+  if (role === 'manager') return ['public', 'kitchen', 'owner']
+  return ['public', 'kitchen']
+}
 
 interface Props {
   role: UserRole
@@ -38,7 +50,7 @@ export function ChatPanel({ role, branchId, onClose, initialText }: Props) {
         .eq('channel', channel)
         .order('created_at', { ascending: true })
 
-      if (channel === 'public') {
+      if (channel === 'public' || channel === 'kitchen') {
         query = query.gte('created_at', getPublicChannelCutoff(new Date()).toISOString())
       }
 
@@ -80,7 +92,7 @@ export function ChatPanel({ role, branchId, onClose, initialText }: Props) {
     setText('')
   }
 
-  const showTabs = role === 'manager'
+  const channels = availableChannels(role)
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -89,24 +101,19 @@ export function ChatPanel({ role, branchId, onClose, initialText }: Props) {
         <div className="p-stack-lg border-b border-outline-variant">
           <h3 className="text-headline-md font-bold text-on-surface mb-1">Trò chuyện</h3>
 
-          {showTabs && (
+          {channels.length > 1 && (
             <div className="flex gap-2 mt-2">
-              <button
-                onClick={() => setChannel('public')}
-                className={`px-4 py-1 rounded-full text-label-vi font-bold ${
-                  channel === 'public' ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant'
-                }`}
-              >
-                Chung
-              </button>
-              <button
-                onClick={() => setChannel('owner')}
-                className={`px-4 py-1 rounded-full text-label-vi font-bold ${
-                  channel === 'owner' ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant'
-                }`}
-              >
-                Chủ quán
-              </button>
+              {channels.map(c => (
+                <button
+                  key={c}
+                  onClick={() => setChannel(c)}
+                  className={`px-4 py-1 rounded-full text-label-vi font-bold ${
+                    channel === c ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant'
+                  }`}
+                >
+                  {CHANNEL_LABELS[c]}
+                </button>
+              ))}
             </div>
           )}
         </div>

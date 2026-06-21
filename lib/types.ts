@@ -90,7 +90,7 @@ export interface OrderWithDetails extends Order {
 export interface Message {
   id: string
   branch_id: string
-  channel: 'public' | 'owner'
+  channel: 'public' | 'owner' | 'kitchen'
   sender_id: string
   body: string
   created_at: string
