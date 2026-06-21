@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { elapsedLabel } from '@/lib/order-urgency'
+import { groupAdjacentByTable } from '@/lib/order-grouping'
 import type { OrderWithDetails } from '@/lib/types'
 
 export default function KitchenPage() {
@@ -64,45 +65,69 @@ export default function KitchenPage() {
     )
   }
 
+  const grouped = groupAdjacentByTable(orders)
+
   return (
-    <div className="space-y-stack-lg max-w-2xl mx-auto">
-      {orders.map(order => (
-        <div
-          key={order.id}
-          role="button"
-          tabIndex={0}
-          aria-label={`Đánh dấu xong — ${order.table.label}`}
-          onClick={() => handleXong(order.id)}
-          onKeyDown={e => {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleXong(order.id) }
-          }}
-          className="rounded-xl border border-outline-variant bg-surface-container-lowest overflow-hidden shadow-sm cursor-pointer select-none active:scale-[0.98] transition-transform"
-        >
-          <div className="p-stack-lg space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-headline-md font-bold text-on-surface">{order.table.label}</p>
-              <p className="text-label-en text-on-surface-variant flex items-center gap-1">
-                <span className="material-symbols-outlined text-[16px]" aria-hidden>schedule</span>
-                {elapsedLabel(order.created_at)}
-              </p>
+    <div className="max-w-2xl mx-auto">
+      {grouped.map((order, i) => {
+        const isAddOn = i > 0 && grouped[i - 1].table_id === order.table_id
+        const isLastOfGroup = i === grouped.length - 1 || grouped[i + 1].table_id !== order.table_id
+
+        const roundingCls =
+          !isAddOn && isLastOfGroup ? 'rounded-xl' :
+          !isAddOn ? 'rounded-t-xl' :
+          isLastOfGroup ? 'rounded-b-xl' :
+          ''
+        const marginCls = i === 0 ? '' : isAddOn ? 'mt-0' : 'mt-stack-lg'
+
+        return (
+          <div
+            key={order.id}
+            role="button"
+            tabIndex={0}
+            aria-label={`Đánh dấu xong — ${order.table.label}`}
+            onClick={() => handleXong(order.id)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleXong(order.id) }
+            }}
+            className={`border overflow-hidden shadow-sm cursor-pointer select-none active:scale-[0.98] transition-transform bg-surface-container-lowest ${roundingCls} ${marginCls} ${
+              isAddOn ? 'border-primary' : 'border-outline-variant'
+            }`}
+          >
+            {isAddOn && (
+              <div className="px-stack-lg pt-stack-md">
+                <span className="inline-block bg-tertiary-fixed text-on-tertiary-fixed text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+                  + Đơn mới
+                </span>
+              </div>
+            )}
+
+            <div className="p-stack-lg space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-headline-md font-bold text-on-surface">{order.table.label}</p>
+                <p className="text-label-en text-on-surface-variant flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[16px]" aria-hidden>schedule</span>
+                  {elapsedLabel(order.created_at)}
+                </p>
+              </div>
+
+              <ul className="space-y-1 pt-1">
+                {order.order_items.map(oi => (
+                  <li key={oi.id} className="flex justify-between text-body-lg font-medium text-on-surface">
+                    <span>{oi.dish.name_vi}</span>
+                    <span className="font-black text-primary">×{oi.qty}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            <ul className="space-y-1 pt-1">
-              {order.order_items.map(oi => (
-                <li key={oi.id} className="flex justify-between text-body-lg font-medium text-on-surface">
-                  <span>{oi.dish.name_vi}</span>
-                  <span className="font-black text-primary">×{oi.qty}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="w-full min-h-touch-target-min bg-secondary text-on-secondary text-label-vi font-bold flex items-center justify-center gap-2">
+              <span className="material-symbols-outlined text-[24px]" aria-hidden>check_circle</span>
+              Xong ✓ — chạm bất kỳ đâu trên thẻ
+            </div>
           </div>
-
-          <div className="w-full min-h-touch-target-min bg-secondary text-on-secondary text-label-vi font-bold flex items-center justify-center gap-2">
-            <span className="material-symbols-outlined text-[24px]" aria-hidden>check_circle</span>
-            Xong ✓ — chạm bất kỳ đâu trên thẻ
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
