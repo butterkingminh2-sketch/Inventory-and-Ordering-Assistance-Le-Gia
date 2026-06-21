@@ -7,6 +7,7 @@ const baseOrder = {
   created_by: null,
   ready_at: null,
   paid_at: null,
+  payment_method: null,
   status: 'pending' as const,
   order_items: [],
   table: { label: 'Bàn 1' },

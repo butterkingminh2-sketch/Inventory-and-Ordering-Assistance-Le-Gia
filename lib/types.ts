@@ -54,6 +54,8 @@ export interface Table {
   is_active: boolean
 }
 
+export type PaymentMethod = 'cash' | 'transfer'
+
 export interface Order {
   id: string
   branch_id: string
@@ -63,6 +65,7 @@ export interface Order {
   created_at: string
   ready_at: string | null
   paid_at: string | null
+  payment_method: PaymentMethod | null
 }
 
 export interface OrderItem {
@@ -72,6 +75,7 @@ export interface OrderItem {
   qty: number
   price_at_order: number | string
   note: string | null
+  parent_item_id: string | null
 }
 
 export interface UserProfile {
