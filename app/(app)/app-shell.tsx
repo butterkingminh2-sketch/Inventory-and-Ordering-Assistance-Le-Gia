@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { SidebarNav } from '@/components/sidebar-nav'
 import { BottomNav } from '@/components/bottom-nav'
 import { AccountMenu } from '@/components/account-menu'
+import { ChatTrigger } from '@/components/chat-trigger'
 import type { Branch, UserRole } from '@/lib/types'
 
 interface BranchContextValue {
@@ -70,19 +71,17 @@ export function AppShell({ role, defaultBranchId, fullName, children }: Props) {
     <BranchContext.Provider value={{ branchId, setBranchId }}>
       {/* Top header */}
       <header className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-gutter min-h-touch-target-min bg-surface border-b border-outline-variant">
-        {role === 'manager' && currentBranchName && (
+        {(role === 'manager' || role === 'owner') && currentBranchName && (
           <span className="text-label-vi font-bold text-on-surface px-1">{currentBranchName}</span>
         )}
 
         <div className="flex items-center gap-3 ml-auto">
-          <span className="material-symbols-outlined text-[22px] text-on-surface-variant" aria-hidden>
-            chat
-          </span>
+          <ChatTrigger role={role} branchId={branchId} />
           <AccountMenu
             fullName={fullName}
             role={role}
-            branchId={role === 'manager' ? branchId : undefined}
-            onBranchChange={role === 'manager' ? setBranchId : undefined}
+            branchId={role === 'manager' || role === 'owner' ? branchId : undefined}
+            onBranchChange={role === 'manager' || role === 'owner' ? setBranchId : undefined}
           />
         </div>
       </header>
