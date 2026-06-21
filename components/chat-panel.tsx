@@ -11,12 +11,13 @@ interface Props {
   role: UserRole
   branchId: string
   onClose: () => void
+  initialText?: string
 }
 
-export function ChatPanel({ role, branchId, onClose }: Props) {
+export function ChatPanel({ role, branchId, onClose, initialText }: Props) {
   const [channel, setChannel] = useState<Channel>(role === 'owner' ? 'owner' : 'public')
   const [messages, setMessages] = useState<MessageWithSender[]>([])
-  const [text, setText] = useState('')
+  const [text, setText] = useState(initialText ?? '')
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [sendError, setSendError] = useState(false)
   const supabase = createClient()
