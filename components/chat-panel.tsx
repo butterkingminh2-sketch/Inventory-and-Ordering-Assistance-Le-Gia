@@ -1,0 +1,145 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { getPublicChannelCutoff } from '@/lib/chat'
+import type { UserRole, MessageWithSender } from '@/lib/types'
+
+type Channel = 'public' | 'owner'
+
+interface Props {
+  role: UserRole
+  branchId: string
+  onClose: () => void
+}
+
+export function ChatPanel({ role, branchId, onClose }: Props) {
+  const [channel, setChannel] = useState<Channel>(role === 'owner' ? 'owner' : 'public')
+  const [messages, setMessages] = useState<MessageWithSender[]>([])
+  const [text, setText] = useState('')
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const supabase = createClient()
+  const listEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setCurrentUserId(user?.id ?? null))
+  }, [])
+
+  async function loadMessages() {
+    let query = supabase
+      .from('messages')
+      .select('*, sender:user_profiles(full_name, role)')
+      .eq('branch_id', branchId)
+      .eq('channel', channel)
+      .order('created_at', { ascending: true })
+
+    if (channel === 'public') {
+      query = query.gte('created_at', getPublicChannelCutoff(new Date()).toISOString())
+    }
+
+    const { data } = await query
+    if (data) setMessages(data as MessageWithSender[])
+  }
+
+  useEffect(() => {
+    loadMessages()
+
+    const realtimeChannel = supabase
+      .channel(`messages-${branchId}-${channel}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `branch_id=eq.${branchId}` },
+        () => loadMessages(),
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(realtimeChannel) }
+  }, [branchId, channel])
+
+  useEffect(() => {
+    listEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  async function handleSend() {
+    const trimmed = text.trim()
+    if (!trimmed) return
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('messages').insert({ branch_id: branchId, channel, sender_id: user.id, body: trimmed })
+    setText('')
+  }
+
+  const showTabs = role === 'manager'
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-surface h-full flex flex-col shadow-lg">
+        <div className="p-stack-lg border-b border-outline-variant">
+          <h3 className="text-headline-md font-bold text-on-surface mb-1">Trò chuyện</h3>
+
+          {showTabs && (
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => setChannel('public')}
+                className={`px-4 py-1 rounded-full text-label-vi font-bold ${
+                  channel === 'public' ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant'
+                }`}
+              >
+                Chung
+              </button>
+              <button
+                onClick={() => setChannel('owner')}
+                className={`px-4 py-1 rounded-full text-label-vi font-bold ${
+                  channel === 'owner' ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant'
+                }`}
+              >
+                Chủ quán
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-stack-lg space-y-2">
+          {messages.length === 0 && (
+            <p className="text-label-en text-on-surface-variant text-center mt-stack-lg">Chưa có tin nhắn nào</p>
+          )}
+          {messages.map(msg => {
+            const isMine = msg.sender_id === currentUserId
+            return (
+              <div key={msg.id} className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                <span className="text-label-en text-on-surface-variant mb-0.5">
+                  {msg.sender.full_name ?? 'Người dùng'}
+                </span>
+                <span
+                  className={`max-w-[80%] rounded-xl px-3 py-2 text-label-vi ${
+                    isMine ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface'
+                  }`}
+                >
+                  {msg.body}
+                </span>
+              </div>
+            )
+          })}
+          <div ref={listEndRef} />
+        </div>
+
+        <div className="p-stack-lg border-t border-outline-variant flex gap-2">
+          <input
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleSend() }}
+            placeholder="Nhập tin nhắn..."
+            className="flex-1 border border-outline-variant rounded-lg px-3 py-2 text-label-vi bg-surface-container-lowest text-on-surface focus:outline-none focus:ring-2 focus:ring-primary min-h-touch-target-min"
+          />
+          <button
+            onClick={handleSend}
+            className="bg-primary text-on-primary rounded-lg px-4 font-bold text-label-vi min-h-touch-target-min"
+          >
+            Gửi
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
