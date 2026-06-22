@@ -23,20 +23,30 @@ interface Props {
 
 export function AccountMenu({ fullName, role, branchId, onBranchChange }: Props) {
   const [open, setOpen] = useState(false)
+  const [closing, setClosing] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const supabase = createClient()
+
+  function close() {
+    if (closing) return
+    setClosing(true)
+    setTimeout(() => {
+      setOpen(false)
+      setClosing(false)
+    }, 150)
+  }
 
   useEffect(() => {
     if (!open) return
 
     function handlePointerDown(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
+        close()
       }
     }
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') close()
     }
 
     document.addEventListener('mousedown', handlePointerDown)
@@ -55,8 +65,8 @@ export function AccountMenu({ fullName, role, branchId, onBranchChange }: Props)
   return (
     <div className="relative" ref={containerRef}>
       <button
-        onClick={() => setOpen(p => !p)}
-        className="flex items-center gap-2 min-h-touch-target-min px-1"
+        onClick={() => (open ? close() : setOpen(true))}
+        className="flex items-center gap-2 min-h-touch-target-min px-1 rounded-lg hover:bg-surface-container-high transition-colors"
         aria-label="Tài khoản"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -71,7 +81,12 @@ export function AccountMenu({ fullName, role, branchId, onBranchChange }: Props)
       </button>
 
       {open && (
-        <div role="menu" className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-outline-variant bg-surface-container-lowest shadow-lg z-50 overflow-hidden">
+        <div
+          role="menu"
+          className={`absolute right-0 top-full mt-1 w-56 rounded-xl border border-outline-variant bg-surface-container-lowest shadow-lg z-50 overflow-hidden ${
+            closing ? 'animate-slide-out-up' : 'animate-slide-in-down'
+          }`}
+        >
           <div className="p-stack-md border-b border-outline-variant">
             <p className="text-label-vi font-bold text-on-surface">{fullName ?? 'Tài khoản'}</p>
             <p className="text-label-en text-on-surface-variant">{ROLE_LABELS[role]}</p>
