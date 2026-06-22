@@ -16,6 +16,7 @@ export default function KhoPage() {
   const [sortToTop, setSortToTop] = useState(false)
   const [justSorted, setJustSorted] = useState(false)
   const gridRef = useRef<HTMLDivElement>(null)
+  const userIdRef = useRef<string | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -29,6 +30,12 @@ export default function KhoPage() {
       if (data) { setItems(data); setLastUpdated(new Date()) }
     }
     load()
+
+    // Fetched once per page load rather than on every +/- tap — auth.getUser()
+    // always makes a network round-trip to revalidate the JWT, and re-paying
+    // that cost on every tap was the actual source of the perceived lag, not
+    // any missing index.
+    supabase.auth.getUser().then(({ data: { user } }) => { userIdRef.current = user?.id ?? null })
 
     const channel = supabase
       .channel(`items-${branchId}`)
@@ -48,19 +55,30 @@ export default function KhoPage() {
   }, [branchId])
 
   async function handleAdjust(itemId: string, delta: 1 | -1) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await applyStockChange([{ item_id: itemId, delta }], 'manual_correction', user.id)
+    const userId = userIdRef.current
+    if (!userId) return
+
+    // Optimistic update, mirroring the RPC's own floor-at-zero clamp — the
+    // realtime subscription reconciles this with the server value moments
+    // later, but the tap shouldn't have to wait on that round-trip first.
+    setItems(prev => prev.map(i =>
+      i.id === itemId ? { ...i, quantity: Math.max(num(i.quantity) + delta, 0) } : i
+    ))
+
+    await applyStockChange([{ item_id: itemId, delta }], 'manual_correction', userId)
   }
 
   async function handleSetQuantity(itemId: string, newQuantity: number) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const userId = userIdRef.current
+    if (!userId) return
     const item = items.find(i => i.id === itemId)
     if (!item) return
     const delta = newQuantity - num(item.quantity)
     if (delta === 0) return
-    await applyStockChange([{ item_id: itemId, delta }], 'count', user.id)
+
+    setItems(prev => prev.map(i => i.id === itemId ? { ...i, quantity: newQuantity } : i))
+
+    await applyStockChange([{ item_id: itemId, delta }], 'count', userId)
   }
 
   const problemItems = items.filter(i => num(i.quantity) <= num(i.low_threshold))
