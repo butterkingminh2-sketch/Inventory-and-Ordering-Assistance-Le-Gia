@@ -77,6 +77,7 @@ export interface OrderItem {
   price_at_order: number | string
   note: string | null
   parent_item_id: string | null
+  comped: boolean
 }
 
 export interface UserProfile {

@@ -47,7 +47,7 @@ describe('aggregateQuantities', () => {
 describe('linesFromOrderItems', () => {
   it('returns one line per root item (no parent_item_id), with empty toppings', () => {
     const items: OrderItem[] = [
-      { id: 'oi-1', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: null, parent_item_id: null },
+      { id: 'oi-1', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: null, parent_item_id: null, comped: false },
     ]
     expect(linesFromOrderItems(items)).toEqual([
       { id: 'oi-1', dishId: 'dish-a', toppings: {}, note: '' },
@@ -56,8 +56,8 @@ describe('linesFromOrderItems', () => {
 
   it('nests a child item under its parent as a topping', () => {
     const items: OrderItem[] = [
-      { id: 'oi-dish', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: null, parent_item_id: null },
-      { id: 'oi-topping', order_id: 'o1', dish_id: 'dish-topping', qty: 2, price_at_order: 10000, note: null, parent_item_id: 'oi-dish' },
+      { id: 'oi-dish', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: null, parent_item_id: null, comped: false },
+      { id: 'oi-topping', order_id: 'o1', dish_id: 'dish-topping', qty: 2, price_at_order: 10000, note: null, parent_item_id: 'oi-dish', comped: false },
     ]
     expect(linesFromOrderItems(items)).toEqual([
       { id: 'oi-dish', dishId: 'dish-a', toppings: { 'dish-topping': 2 }, note: '' },
@@ -66,15 +66,15 @@ describe('linesFromOrderItems', () => {
 
   it('carries a non-null note through to the line', () => {
     const items: OrderItem[] = [
-      { id: 'oi-1', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: 'không hành', parent_item_id: null },
+      { id: 'oi-1', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: 'không hành', parent_item_id: null, comped: false },
     ]
     expect(linesFromOrderItems(items)[0].note).toBe('không hành')
   })
 
   it('keeps separate root items as separate lines even when they share a dish_id', () => {
     const items: OrderItem[] = [
-      { id: 'oi-1', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: null, parent_item_id: null },
-      { id: 'oi-2', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: null, parent_item_id: null },
+      { id: 'oi-1', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: null, parent_item_id: null, comped: false },
+      { id: 'oi-2', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: null, parent_item_id: null, comped: false },
     ]
     expect(linesFromOrderItems(items)).toHaveLength(2)
   })
