@@ -68,6 +68,12 @@ export default function RegisterPage() {
     setErrorMsg(null)
   }
 
+  async function handleToggleComp(itemId: string, currentlyComped: boolean) {
+    if (!branchId) return
+    await supabase.from('order_items').update({ comped: !currentlyComped }).eq('id', itemId)
+    fetchBills(branchId)
+  }
+
   async function handleComplete() {
     if (!selectedBill || !branchId || !paymentMethod) return
 
@@ -150,20 +156,44 @@ export default function RegisterPage() {
               <>
                 <p className="font-bold text-headline-md text-on-surface mb-stack-md">{selectedBill.tableLabel}</p>
                 <div className="space-y-3">
-                  {selectedBill.items.map((item, i) => (
-                    <div key={i} className="flex justify-between items-start text-body-lg text-on-surface">
+                  {selectedBill.items.map(item => (
+                    <div key={item.id} className="flex justify-between items-start text-body-lg text-on-surface">
                       <div>
-                        <span className="font-bold">{item.name_vi}</span>
-                        {item.toppings.map((t, ti) => (
-                          <span key={ti} className="block text-label-en text-on-surface-variant pl-stack-md">
-                            {t.name_vi}{t.qty > 1 ? ` ×${t.qty}` : ''}
-                          </span>
+                        <span className={`font-bold ${item.comped ? 'line-through text-on-surface-variant' : ''}`}>
+                          {item.name_vi}
+                        </span>
+                        {item.comped && (
+                          <span className="ml-2 text-label-en font-bold text-secondary">Miễn phí</span>
+                        )}
+                        {item.toppings.map(t => (
+                          <div key={t.id} className="flex items-center gap-2 pl-stack-md">
+                            <span className={`text-label-en text-on-surface-variant ${t.comped ? 'line-through' : ''}`}>
+                              {t.name_vi}{t.qty > 1 ? ` ×${t.qty}` : ''}
+                            </span>
+                            {t.comped && <span className="text-label-en font-bold text-secondary">Miễn phí</span>}
+                            <button
+                              onClick={() => handleToggleComp(t.id, t.comped)}
+                              className="text-label-en text-primary hover:underline"
+                            >
+                              {t.comped ? 'Hủy miễn phí' : 'Miễn phí'}
+                            </button>
+                          </div>
                         ))}
                         {item.note && (
                           <span className="block text-label-en text-on-surface-variant pl-stack-md">{item.note}</span>
                         )}
                       </div>
-                      <span className="font-bold shrink-0">{item.lineTotal.toLocaleString('vi-VN')}đ</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`font-bold ${item.comped ? 'line-through text-on-surface-variant' : ''}`}>
+                          {item.lineTotal.toLocaleString('vi-VN')}đ
+                        </span>
+                        <button
+                          onClick={() => handleToggleComp(item.id, item.comped)}
+                          className="text-label-en text-primary hover:underline whitespace-nowrap"
+                        >
+                          {item.comped ? 'Hủy miễn phí' : 'Miễn phí'}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -193,16 +223,16 @@ export default function RegisterPage() {
                 <p className="text-center">{new Date().toLocaleString('vi-VN')}</p>
                 <p className="mt-2">{selectedBill.tableLabel}</p>
                 <hr className="border-dashed border-outline-variant my-2" />
-                {selectedBill.items.map((item, i) => (
-                  <div key={i}>
+                {selectedBill.items.map(item => (
+                  <div key={item.id}>
                     <div className="flex justify-between">
-                      <span>{item.name_vi} x{item.qty}</span>
-                      <span>{item.lineTotal.toLocaleString('vi-VN')}</span>
+                      <span>{item.name_vi} x{item.qty}{item.comped ? ' (miễn phí)' : ''}</span>
+                      <span>{item.comped ? '0' : item.lineTotal.toLocaleString('vi-VN')}</span>
                     </div>
-                    {item.toppings.map((t, ti) => (
-                      <div key={ti} className="flex justify-between pl-3">
-                        <span>{t.name_vi} x{t.qty}</span>
-                        <span>{t.lineTotal.toLocaleString('vi-VN')}</span>
+                    {item.toppings.map(t => (
+                      <div key={t.id} className="flex justify-between pl-3">
+                        <span>{t.name_vi} x{t.qty}{t.comped ? ' (miễn phí)' : ''}</span>
+                        <span>{t.comped ? '0' : t.lineTotal.toLocaleString('vi-VN')}</span>
                       </div>
                     ))}
                   </div>
