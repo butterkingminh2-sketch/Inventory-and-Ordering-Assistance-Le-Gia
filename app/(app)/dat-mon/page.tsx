@@ -273,7 +273,7 @@ export default function DatMonPage() {
       setTimeout(() => setToast(null), 4000)
     }
 
-    router.push('/kho')
+    router.push('/dang-chay')
   }
 
   return (

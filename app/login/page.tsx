@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getDefaultRouteForRole } from '@/lib/routing'
 
 export default function LoginPage() {
   const [email, setEmail]       = useState('')
@@ -46,11 +47,7 @@ export default function LoginPage() {
         return
       }
 
-      const target =
-        profile.role === 'kitchen'  ? '/kitchen' :
-        profile.role === 'register' ? '/register' :
-        '/kho'
-      router.push(target)
+      router.push(getDefaultRouteForRole(profile.role))
     } catch {
       setError('Đã xảy ra lỗi. Vui lòng thử lại.')
     } finally {
