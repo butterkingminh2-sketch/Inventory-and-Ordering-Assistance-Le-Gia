@@ -107,6 +107,26 @@
 }
 .animate-pulse-critical { animation: pulse-critical 2s infinite; }
 
+/* Slide-in side panels (chat, topping picker) */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-slide-in-right { animation: slide-in-right 0.25s ease-out; }
+.animate-fade-in        { animation: fade-in 0.2s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-critical,
+  .animate-slide-in-right,
+  .animate-fade-in {
+    animation: none;
+  }
+}
+
 /* Register receipt — print only the receipt card, sized for an 80mm thermal printer */
 @media print {
   body * {

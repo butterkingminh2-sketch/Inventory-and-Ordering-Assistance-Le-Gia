@@ -90,8 +90,8 @@ export function ChatPanel({ branchId, onClose, initialText }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-sm bg-surface h-full flex flex-col shadow-lg">
+      <div className="absolute inset-0 bg-black/40 animate-fade-in" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-surface h-full flex flex-col shadow-lg animate-slide-in-right">
         <div className="p-stack-lg border-b border-outline-variant">
           <h3 className="text-headline-md font-bold text-on-surface mb-1">Trò chuyện</h3>
 

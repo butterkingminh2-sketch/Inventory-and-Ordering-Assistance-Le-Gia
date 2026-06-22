@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { getDefaultRouteForRole } from '@/lib/routing'
+import { LoadingScreen } from '@/components/loading-screen'
 
 export default function LoginPage() {
   const [email, setEmail]       = useState('')
@@ -26,7 +27,10 @@ export default function LoginPage() {
       return
     }
 
-    // Fetch role to determine redirect target
+    // Fetch role to determine redirect target. loading stays true on the
+    // success path — it's left on through the router.push so the overlay
+    // below doesn't flash away right before the destination route's own
+    // loading.tsx takes over.
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       if (userError || !user) {
@@ -50,10 +54,11 @@ export default function LoginPage() {
       router.push(getDefaultRouteForRole(profile.role))
     } catch {
       setError('Đã xảy ra lỗi. Vui lòng thử lại.')
-    } finally {
       setLoading(false)
     }
   }
+
+  if (loading) return <LoadingScreen />
 
   return (
     <main className="h-full overflow-y-auto flex items-center justify-center bg-gray-50 p-4">

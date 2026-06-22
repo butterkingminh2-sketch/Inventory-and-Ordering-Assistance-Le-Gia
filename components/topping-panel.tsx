@@ -30,8 +30,8 @@ export function ToppingPanel({ dish, toppings, initialNote, onConfirm, onClose }
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-sm bg-surface h-full overflow-y-auto p-stack-lg shadow-lg">
+      <div className="absolute inset-0 bg-black/40 animate-fade-in" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-surface h-full overflow-y-auto p-stack-lg shadow-lg animate-slide-in-right">
         <h3 className="text-headline-md font-bold text-on-surface mb-1">{dish.name_vi}</h3>
         <p className="text-label-en text-on-surface-variant mb-stack-lg">Thêm món / Ghi chú</p>
 
