@@ -26,6 +26,8 @@ export default function SettingsPage() {
   const [newDishImage, setNewDishImage] = useState<File | null>(null)
   const [newLine,  setNewLine]  = useState({ item_id: '', qty_per_serving: 1 })
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null)
+  const [showInactiveItems, setShowInactiveItems] = useState(false)
+  const [showInactiveTables, setShowInactiveTables] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -65,6 +67,19 @@ export default function SettingsPage() {
   async function activateItem(id: string) {
     await supabase.from('items').update({ is_active: true }).eq('id', id)
     setItems(p => p.map(i => i.id === id ? { ...i, is_active: true } : i))
+  }
+  async function deleteItem(id: string) {
+    const [recipeCheck, logCheck] = await Promise.all([
+      supabase.from('recipe_lines').select('id', { count: 'exact', head: true }).eq('item_id', id),
+      supabase.from('stock_logs').select('id', { count: 'exact', head: true }).eq('item_id', id),
+    ])
+    if ((recipeCheck.count ?? 0) > 0 || (logCheck.count ?? 0) > 0) {
+      alert('Không thể xóa — nguyên liệu này đã được dùng trong công thức hoặc lịch sử kho. Hãy tắt thay vì xóa.')
+      return
+    }
+    if (!window.confirm('Xóa nguyên liệu này? Không thể hoàn tác.')) return
+    await supabase.from('items').delete().eq('id', id)
+    setItems(p => p.filter(i => i.id !== id))
   }
   async function updateItem(id: string, field: string, value: string | number) {
     await supabase.from('items').update({ [field]: value }).eq('id', id)
@@ -173,6 +188,16 @@ export default function SettingsPage() {
     await supabase.from('tables').update({ is_active: true }).eq('id', id)
     setTables(p => p.map(t => t.id === id ? { ...t, is_active: true } : t))
   }
+  async function deleteTable(id: string) {
+    const { count } = await supabase.from('orders').select('id', { count: 'exact', head: true }).eq('table_id', id)
+    if ((count ?? 0) > 0) {
+      alert('Không thể xóa — bàn này đã có lịch sử đơn hàng. Hãy tắt thay vì xóa.')
+      return
+    }
+    if (!window.confirm('Xóa bàn này? Không thể hoàn tác.')) return
+    await supabase.from('tables').delete().eq('id', id)
+    setTables(p => p.filter(t => t.id !== id))
+  }
 
   const TABS: { key: Tab; labelVi: string }[] = [
     { key: 'items',   labelVi: 'Nguyên liệu' },
@@ -181,7 +206,9 @@ export default function SettingsPage() {
     { key: 'tables',  labelVi: 'Bàn' },
   ]
 
-  const { takeout: takeoutTable, floors: floorGroups } = groupTablesByFloor(tables)
+  const visibleItems = showInactiveItems ? items : items.filter(i => i.is_active)
+  const visibleTables = showInactiveTables ? tables : tables.filter(t => t.is_active)
+  const { takeout: takeoutTable, floors: floorGroups } = groupTablesByFloor(visibleTables)
 
   const inputCls = 'border border-outline-variant rounded-lg px-3 py-2 text-label-vi bg-surface-container-lowest text-on-surface focus:outline-none focus:ring-2 focus:ring-primary min-h-touch-target-min'
   const btnPrimary = 'bg-primary text-on-primary rounded-lg px-4 font-bold text-label-vi min-h-touch-target-min hover:bg-primary-container transition-colors'
@@ -234,13 +261,17 @@ export default function SettingsPage() {
               + Thêm nguyên liệu
             </button>
           </div>
+          <label className="flex items-center gap-2 text-label-en text-on-surface-variant">
+            <input type="checkbox" checked={showInactiveItems} onChange={e => setShowInactiveItems(e.target.checked)} />
+            Hiện nguyên liệu đã tắt ({items.filter(i => !i.is_active).length})
+          </label>
           <table className="w-full text-label-vi">
             <thead><tr className="text-left text-on-surface-variant border-b border-outline-variant">
               <th className="pb-2">Tên</th><th className="pb-2">Phân loại</th><th className="pb-2">Đơn vị</th>
               <th className="pb-2">Ngưỡng</th><th className="pb-2">Trạng thái</th><th />
             </tr></thead>
             <tbody>
-              {items.map(item => (
+              {visibleItems.map(item => (
                 <tr key={item.id} className="border-b border-outline-variant last:border-0">
                   <td className="py-2">
                     <div className="font-bold">{item.name_vi}</div>
@@ -269,10 +300,16 @@ export default function SettingsPage() {
                       {item.is_active ? 'Hoạt động' : 'Tắt'}
                     </span>
                   </td>
-                  <td className="py-2 text-right">
-                    {item.is_active
-                      ? <button onClick={() => deactivateItem(item.id)} className={btnDanger}>Tắt</button>
-                      : <button onClick={() => activateItem(item.id)} className={btnSecondary}>Kích hoạt</button>}
+                  <td className="py-2 text-right whitespace-nowrap">
+                    {item.is_active ? (
+                      <button onClick={() => deactivateItem(item.id)} className={btnDanger}>Tắt</button>
+                    ) : (
+                      <>
+                        <button onClick={() => activateItem(item.id)} className={btnSecondary}>Kích hoạt</button>
+                        {' · '}
+                        <button onClick={() => deleteItem(item.id)} className={btnDanger}>Xóa</button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -399,6 +436,11 @@ export default function SettingsPage() {
             + Thêm {getNextTableLabel(tables)}
           </button>
 
+          <label className="flex items-center gap-2 text-label-en text-on-surface-variant">
+            <input type="checkbox" checked={showInactiveTables} onChange={e => setShowInactiveTables(e.target.checked)} />
+            Hiện bàn đã tắt ({tables.filter(t => !t.is_active).length})
+          </label>
+
           {takeoutTable && (
             <div className="rounded-xl border-2 border-primary bg-primary-fixed p-stack-md flex items-center justify-between">
               <span className="font-bold text-on-surface">{takeoutTable.label}</span>
@@ -406,9 +448,14 @@ export default function SettingsPage() {
                 <span className={takeoutTable.is_active ? badgeActive : badgeInactive}>
                   {takeoutTable.is_active ? 'Hoạt động' : 'Tắt'}
                 </span>
-                {takeoutTable.is_active
-                  ? <button onClick={() => deactivateTable(takeoutTable.id)} className={btnDanger}>Tắt</button>
-                  : <button onClick={() => activateTable(takeoutTable.id)} className={btnSecondary}>Kích hoạt</button>}
+                {takeoutTable.is_active ? (
+                  <button onClick={() => deactivateTable(takeoutTable.id)} className={btnDanger}>Tắt</button>
+                ) : (
+                  <>
+                    <button onClick={() => activateTable(takeoutTable.id)} className={btnSecondary}>Kích hoạt</button>
+                    <button onClick={() => deleteTable(takeoutTable.id)} className={btnDanger}>Xóa</button>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -424,9 +471,14 @@ export default function SettingsPage() {
                       <span className={t.is_active ? badgeActive : badgeInactive}>
                         {t.is_active ? 'Hoạt động' : 'Tắt'}
                       </span>
-                      {t.is_active
-                        ? <button onClick={() => deactivateTable(t.id)} className={btnDanger}>Tắt</button>
-                        : <button onClick={() => activateTable(t.id)} className={btnSecondary}>Kích hoạt</button>}
+                      {t.is_active ? (
+                        <button onClick={() => deactivateTable(t.id)} className={btnDanger}>Tắt</button>
+                      ) : (
+                        <>
+                          <button onClick={() => activateTable(t.id)} className={btnSecondary}>Kích hoạt</button>
+                          <button onClick={() => deleteTable(t.id)} className={btnDanger}>Xóa</button>
+                        </>
+                      )}
                     </div>
                   </li>
                 ))}
