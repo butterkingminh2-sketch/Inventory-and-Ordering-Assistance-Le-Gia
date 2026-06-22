@@ -10,6 +10,7 @@ import { getDishStatus, getMaxOrderableQty } from '@/lib/dish-availability'
 import { sortToppingsByRelevance } from '@/lib/topping-relevance'
 import { calculateDecrements, applyStockChange, reverseOrderStock } from '@/lib/stock'
 import { groupTablesByFloor } from '@/lib/tables'
+import { matchesDishSearch } from '@/lib/dish-search'
 import { aggregateQuantities, linesFromOrderItems } from '@/lib/order-lines'
 import type { OrderLine } from '@/lib/order-lines'
 import { num } from '@/lib/types'
@@ -29,6 +30,7 @@ export default function DatMonPage() {
   const [recipes, setRecipes]         = useState<RecipeLine[]>([])
   const [selectedTable, setSelectedTable]   = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const [lines, setLines]             = useState<OrderLine[]>([])
   const [panelDish, setPanelDish]     = useState<Dish | null>(null)
   const [editOrderId, setEditOrderId] = useState<string | null>(null)
@@ -86,9 +88,15 @@ export default function DatMonPage() {
   // uncategorized dish must never become invisible just because other
   // categories exist.
   const categories = [...new Set(dishes.map(d => d.category).filter((c): c is string => c !== null))]
-  const visibleDishes = selectedCategory === null
+  const isSearching = searchQuery.trim().length > 0
+  // While searching, ignore the category filter entirely — the point of
+  // search is finding something fast without first picking the right tab.
+  const categoryFiltered = selectedCategory === null
     ? dishes
     : dishes.filter(d => d.category === selectedCategory)
+  const visibleDishes = isSearching
+    ? dishes.filter(d => matchesDishSearch(d, searchQuery))
+    : categoryFiltered
 
   // Toppings are scoped to the base dish's own menu section — e.g. a Lẩu
   // hotpot add-on must never show up on a Bún riêu bowl just because they
@@ -340,7 +348,21 @@ export default function DatMonPage() {
             </h2>
           </div>
 
-          {categories.length > 0 && (
+          <div className="relative mb-stack-lg">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant" aria-hidden>
+              search
+            </span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Tìm món..."
+              aria-label="Tìm món"
+              className="w-full min-h-touch-target-min pl-10 pr-4 rounded-xl border border-outline-variant bg-surface-container-lowest text-label-vi text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          {!isSearching && categories.length > 0 && (
             <div className="flex gap-2 mb-stack-lg overflow-x-auto pb-1">
               <button
                 onClick={() => setSelectedCategory(null)}
@@ -366,6 +388,12 @@ export default function DatMonPage() {
                 </button>
               ))}
             </div>
+          )}
+
+          {isSearching && visibleDishes.length === 0 && (
+            <p className="text-on-surface-variant text-center mt-8 text-label-vi">
+              Không tìm thấy món nào
+            </p>
           )}
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pb-24">
