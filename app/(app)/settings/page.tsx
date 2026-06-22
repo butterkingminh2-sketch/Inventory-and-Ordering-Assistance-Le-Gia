@@ -189,12 +189,21 @@ export default function SettingsPage() {
     setTables(p => p.map(t => t.id === id ? { ...t, is_active: true } : t))
   }
   async function deleteTable(id: string) {
-    const { count } = await supabase.from('orders').select('id', { count: 'exact', head: true }).eq('table_id', id)
+    // Blocks only on unfinished business for this table — still being
+    // prepared/not yet delivered, or delivered but not yet paid. A
+    // cancelled order or a fully paid-out one doesn't count; that's just
+    // closed-out history, which the FK now preserves (table_id -> null)
+    // instead of blocking the delete outright.
+    const { count } = await supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('table_id', id)
+      .or('status.in.(pending,ready),and(status.eq.delivered,paid_at.is.null)')
     if ((count ?? 0) > 0) {
-      alert('Không thể xóa — bàn này đã có lịch sử đơn hàng. Hãy tắt thay vì xóa.')
+      alert('Không thể xóa — bàn này còn đơn hàng chưa hoàn tất hoặc chưa thanh toán.')
       return
     }
-    if (!window.confirm('Xóa bàn này? Không thể hoàn tác.')) return
+    if (!window.confirm('Xóa bàn này? Lịch sử đơn hàng cũ vẫn được giữ lại, chỉ không còn gắn với bàn này nữa.')) return
     await supabase.from('tables').delete().eq('id', id)
     setTables(p => p.filter(t => t.id !== id))
   }
