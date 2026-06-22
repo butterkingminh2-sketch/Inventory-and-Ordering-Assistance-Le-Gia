@@ -12,7 +12,7 @@ import { sortToppingsByRelevance } from '@/lib/topping-relevance'
 import { calculateDecrements, applyStockChange, reverseOrderStock } from '@/lib/stock'
 import { groupTablesByFloor } from '@/lib/tables'
 import { matchesNameSearch } from '@/lib/dish-search'
-import { aggregateQuantities, linesFromOrderItems } from '@/lib/order-lines'
+import { aggregateQuantities, linesFromOrderItems, groupIdenticalLines } from '@/lib/order-lines'
 import type { OrderLine } from '@/lib/order-lines'
 import { useOrderAlerts } from '@/hooks/use-order-alerts'
 import { num } from '@/lib/types'
@@ -473,11 +473,11 @@ export default function DatMonPage() {
                 Đơn sẽ trống — xác nhận sẽ hủy toàn bộ đơn này.
               </p>
             )}
-            {lines.map(line => {
-              const dish = dishes.find(d => d.id === line.dishId)!
-              const toppingEntries = Object.entries(line.toppings).filter(([, qty]) => qty > 0)
+            {groupIdenticalLines(lines).map((group, gi) => {
+              const dish = dishes.find(d => d.id === group.dishId)!
+              const toppingEntries = Object.entries(group.toppings).filter(([, qty]) => qty > 0)
               return (
-                <div key={line.id} className="flex justify-between items-start">
+                <div key={gi} className="flex justify-between items-start">
                   <div>
                     <span className="text-label-vi font-bold text-on-surface">{dish.name_vi}</span>
                     {toppingEntries.map(([toppingId, qty]) => {
@@ -488,11 +488,11 @@ export default function DatMonPage() {
                         </span>
                       )
                     })}
-                    {line.note && (
-                      <span className="block text-label-en text-on-surface-variant">{line.note}</span>
+                    {group.note && (
+                      <span className="block text-label-en text-on-surface-variant">{group.note}</span>
                     )}
                   </div>
-                  <span className="text-label-vi font-black text-primary">×1</span>
+                  <span className="text-label-vi font-black text-primary">×{group.qty}</span>
                 </div>
               )
             })}
