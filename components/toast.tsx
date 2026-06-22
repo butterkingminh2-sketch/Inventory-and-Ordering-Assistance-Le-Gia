@@ -2,12 +2,20 @@
 
 import { useEffect, useState } from 'react'
 
+type Tone = 'error' | 'info'
+
+const TONE_CLASSES: Record<Tone, string> = {
+  error: 'bg-error text-on-error',
+  info: 'bg-primary text-on-primary',
+}
+
 interface Props {
   message: string | null
+  tone?: Tone
 }
 
 /** Stays mounted through its exit animation — clearing `message` doesn't unmount it instantly. */
-export function Toast({ message }: Props) {
+export function Toast({ message, tone = 'error' }: Props) {
   const [displayMessage, setDisplayMessage] = useState(message)
   const [visible, setVisible] = useState(!!message)
   const [prevMessage, setPrevMessage] = useState(message)
@@ -36,10 +44,13 @@ export function Toast({ message }: Props) {
 
   return (
     <div
-      className={`fixed top-4 left-1/2 bg-error text-on-error text-label-vi font-bold px-stack-lg py-2 rounded-xl z-50 shadow-lg ${
+      className={`fixed top-4 left-1/2 ${TONE_CLASSES[tone]} text-label-vi font-bold px-stack-lg py-2 rounded-xl z-50 shadow-lg flex items-center gap-2 ${
         visible ? 'animate-toast-in' : 'animate-toast-out'
       }`}
     >
+      {tone === 'info' && (
+        <span className="material-symbols-outlined text-[20px]" aria-hidden>notifications_active</span>
+      )}
       {displayMessage}
     </div>
   )

@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { elapsedLabel } from '@/lib/order-urgency'
 import { groupAdjacentByTable } from '@/lib/order-grouping'
+import { Toast } from '@/components/toast'
 import type { OrderWithDetails } from '@/lib/types'
 
 export default function KitchenPage() {
   const [orders, setOrders]   = useState<OrderWithDetails[]>([])
   const [branchId, setBranchId] = useState<string | null>(null)
+  const [newOrderAlert, setNewOrderAlert] = useState<string | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -30,6 +32,7 @@ export default function KitchenPage() {
       .eq('status', 'pending')
       .order('created_at', { ascending: true })
     if (data) setOrders(data as OrderWithDetails[])
+    return data as OrderWithDetails[] | null
   }
 
   useEffect(() => {
@@ -43,7 +46,18 @@ export default function KitchenPage() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders', filter: `branch_id=eq.${branchId}` },
-        () => loadOrders(branchId),
+        payload => {
+          if (payload.eventType === 'INSERT') {
+            const newOrderId = (payload.new as { id: string }).id
+            loadOrders(branchId).then(data => {
+              const newOrder = data?.find(o => o.id === newOrderId)
+              setNewOrderAlert(`Đơn mới — ${newOrder?.table.label ?? ''}`)
+              setTimeout(() => setNewOrderAlert(null), 5000)
+            })
+          } else {
+            loadOrders(branchId)
+          }
+        },
       )
       .subscribe()
 
@@ -59,9 +73,12 @@ export default function KitchenPage() {
 
   if (orders.length === 0) {
     return (
-      <p className="text-on-surface-variant text-center mt-16 text-label-vi">
-        Không có đơn nào — Bếp rảnh 🎉
-      </p>
+      <>
+        <Toast message={newOrderAlert} tone="info" />
+        <p className="text-on-surface-variant text-center mt-16 text-label-vi">
+          Không có đơn nào — Bếp rảnh 🎉
+        </p>
+      </>
     )
   }
 
@@ -69,6 +86,7 @@ export default function KitchenPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
+      <Toast message={newOrderAlert} tone="info" />
       {grouped.map((order, i) => {
         const isAddOn = i > 0 && grouped[i - 1].table_id === order.table_id
         const isLastOfGroup = i === grouped.length - 1 || grouped[i + 1].table_id !== order.table_id
