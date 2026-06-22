@@ -48,8 +48,19 @@ export function SidebarNav({ role, readyCount }: Props) {
   const activeIndex = tabs.findIndex(tab => pathname.startsWith(tab.href))
 
   useLayoutEffect(() => {
-    const activeEl = linkRefs.current[activeIndex]
-    if (activeEl) setIndicator({ top: activeEl.offsetTop, height: activeEl.offsetHeight })
+    function measure() {
+      const activeEl = linkRefs.current[activeIndex]
+      if (activeEl) setIndicator({ top: activeEl.offsetTop, height: activeEl.offsetHeight })
+    }
+
+    measure()
+
+    // The icon font (loaded via a plain <link>, not next/font) can swap in
+    // after this first measurement and change link heights — re-measure
+    // once everything's actually settled, plus on resize.
+    document.fonts?.ready.then(measure)
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
   }, [activeIndex, tabs.length])
 
   return (

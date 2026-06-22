@@ -70,35 +70,42 @@ export function AppShell({ role, defaultBranchId, fullName, children }: Props) {
 
   return (
     <BranchContext.Provider value={{ branchId, setBranchId }}>
-      {/* Top header */}
-      <header className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-gutter min-h-touch-target-min bg-surface border-b border-outline-variant">
-        {canSwitchBranch && currentBranchName && (
-          <span className="text-label-vi font-bold text-on-surface px-1">{currentBranchName}</span>
-        )}
+      {/* h-full flex column: header sizes itself, the row below it takes
+          whatever's left. No more fixed-position elements assuming the
+          header is exactly touch-target-min tall — if the header ever
+          grows (text wrap, icon-font swap, a long branch name), the
+          sidebar and main both adjust automatically instead of going
+          stale and visually overlapping/clipping. */}
+      <div className="h-full flex flex-col">
+        <header className="shrink-0 z-40 flex items-center justify-between gap-3 px-gutter min-h-touch-target-min bg-surface border-b border-outline-variant">
+          {canSwitchBranch && currentBranchName && (
+            <span className="text-label-vi font-bold text-on-surface px-1 truncate min-w-0">{currentBranchName}</span>
+          )}
 
-        <div className="flex items-center gap-3 ml-auto">
-          <ChatTrigger role={role} branchId={branchId} />
-          <AccountMenu
-            fullName={fullName}
-            role={role}
-            branchId={canSwitchBranch ? branchId : undefined}
-            onBranchChange={canSwitchBranch ? setBranchId : undefined}
-          />
+          <div className="flex items-center gap-3 ml-auto shrink-0">
+            <ChatTrigger role={role} branchId={branchId} />
+            <AccountMenu
+              fullName={fullName}
+              role={role}
+              branchId={canSwitchBranch ? branchId : undefined}
+              onBranchChange={canSwitchBranch ? setBranchId : undefined}
+            />
+          </div>
+        </header>
+
+        <div className="flex-1 flex overflow-hidden">
+          {/* Sidebar (tablet+) */}
+          <aside className="hidden md:flex flex-col w-64 shrink-0 bg-surface-container-low border-r border-outline-variant overflow-y-auto z-30">
+            <SidebarNav role={role} readyCount={readyCount} />
+          </aside>
+
+          {/* Main content — scrolls internally so the native scrollbar is
+              scoped to this region, not the whole page. */}
+          <main className="flex-1 overflow-y-auto p-margin-mobile md:p-margin-tablet lg:p-margin-desktop pb-touch-target-min md:pb-margin-desktop">
+            {children}
+          </main>
         </div>
-      </header>
-
-      {/* Sidebar (tablet+) */}
-      <aside className="hidden md:flex flex-col fixed left-0 top-touch-target-min bottom-0 w-64 bg-surface-container-low border-r border-outline-variant overflow-y-auto z-30">
-        <SidebarNav role={role} readyCount={readyCount} />
-      </aside>
-
-      {/* Main content — scrolls internally so the native scrollbar is scoped
-          to this region, not the whole page (which would otherwise render
-          at the outer viewport edge, outside the fixed header/sidebar's
-          stacking context entirely). */}
-      <main className="mt-touch-target-min md:ml-64 h-[calc(100vh-var(--spacing-touch-target-min))] overflow-y-auto p-margin-mobile md:p-margin-tablet lg:p-margin-desktop pb-touch-target-min md:pb-margin-desktop">
-        {children}
-      </main>
+      </div>
 
       {/* Mobile bottom nav */}
       <BottomNav role={role} readyCount={readyCount} />
