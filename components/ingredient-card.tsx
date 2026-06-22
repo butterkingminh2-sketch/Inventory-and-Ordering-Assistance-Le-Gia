@@ -23,7 +23,7 @@ const badge = {
 
 const cardWrapper = {
   sufficient: 'bg-surface-container-lowest border border-outline-variant rounded-xl p-5',
-  low:        'bg-surface-container-lowest border border-outline-variant rounded-xl p-5 ring-1 ring-tertiary-fixed-dim',
+  low:        'bg-tertiary-container/20 border-2 border-tertiary ring-2 ring-tertiary/10 ring-offset-2 rounded-xl p-5',
   out:        'bg-error-container/20 border-2 border-error ring-2 ring-error/10 ring-offset-2 rounded-xl p-5',
 }
 
