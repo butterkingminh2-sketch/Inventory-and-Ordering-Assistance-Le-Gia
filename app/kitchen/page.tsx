@@ -86,10 +86,12 @@ export default function KitchenPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // needs_stock_confirmation stays true (not cleared) — it's the marker
-    // Đang chạy/Đặt món use to show "hủy do hết hàng" instead of a plain
-    // cancellation, so FOH knows why the order disappeared.
-    await supabase.from('orders').update({ status: 'cancelled' }).eq('id', orderId)
+    // needs_stock_confirmation is set true here regardless of whether the
+    // order was already flagged — it's the marker Đang chạy/Đặt món use to
+    // show "hủy do hết hàng" instead of a plain cancellation, so FOH knows
+    // why the order disappeared even when the system never suspected a
+    // stock problem in the first place (the tracked count was just wrong).
+    await supabase.from('orders').update({ status: 'cancelled', needs_stock_confirmation: true }).eq('id', orderId)
     await reverseOrderStock(orderId, user.id)
   }
 
@@ -147,8 +149,8 @@ export default function KitchenPage() {
               needsConfirmation ? 'border-error' : isAddOn ? 'border-primary' : 'border-outline-variant'
             }`}
           >
-            {(isAddOn || needsConfirmation) && (
-              <div className="px-stack-lg pt-stack-md flex gap-2">
+            <div className="px-stack-lg pt-stack-md flex items-center justify-between gap-2">
+              <div className="flex gap-2">
                 {isAddOn && (
                   <span className="inline-block bg-tertiary-fixed text-on-tertiary-fixed text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
                     + Đơn mới
@@ -160,7 +162,18 @@ export default function KitchenPage() {
                   </span>
                 )}
               </div>
-            )}
+              {/* Stock counts can be wrong even when nothing flagged this
+                  order — kitchen needs a way to say so regardless, not
+                  just on orders the system already suspected. */}
+              {!needsConfirmation && (
+                <button
+                  onClick={e => { e.stopPropagation(); handleOutOfStock(order.id) }}
+                  className="text-label-en font-bold text-error hover:underline shrink-0"
+                >
+                  Báo hết hàng
+                </button>
+              )}
+            </div>
 
             <div className="p-stack-lg space-y-2">
               <div className="flex items-center justify-between">
