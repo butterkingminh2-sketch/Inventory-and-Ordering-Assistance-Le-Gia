@@ -236,7 +236,10 @@ export default function DatMonPage() {
       await reverseOrderStock(editOrderId, user.id)
 
       if (lines.length === 0) {
-        await supabase.from('orders').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', editOrderId)
+        // Edited down to nothing — this is an ordinary cancel, not a
+        // kitchen-reported stock issue, so the flag must not be left set
+        // from a prior floored edit or FOH's own alert misreports why.
+        await supabase.from('orders').update({ status: 'cancelled', updated_at: new Date().toISOString(), needs_stock_confirmation: false }).eq('id', editOrderId)
       } else {
         await supabase.from('order_items').delete().eq('order_id', editOrderId)
         await insertLines(editOrderId)
@@ -246,8 +249,12 @@ export default function DatMonPage() {
         const decrements = calculateDecrements(orderQtyEntries, recipes)
         const { floored } = await applyStockChange(decrements, 'order', user.id, editOrderId)
 
+        // Always write the flag (not just on the floored branch) — an edit
+        // that resolves a prior shortage must clear it too, or Kitchen
+        // keeps showing "Thiếu tồn kho" for an order that's fine now.
+        await supabase.from('orders').update({ needs_stock_confirmation: floored.length > 0 }).eq('id', editOrderId)
+
         if (floored.length > 0) {
-          await supabase.from('orders').update({ needs_stock_confirmation: true }).eq('id', editOrderId)
           setToast('Kho không đủ — đã cập nhật về 0')
           setTimeout(() => setToast(null), 4000)
         }
