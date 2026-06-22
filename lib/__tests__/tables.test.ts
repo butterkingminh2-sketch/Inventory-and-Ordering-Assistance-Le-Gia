@@ -73,11 +73,16 @@ describe('getNextTableLabel', () => {
     expect(getNextTableLabel([takeout])).toBe('Bàn 1')
   })
 
-  it('returns one past the highest existing table number', () => {
-    expect(getNextTableLabel([table1, table2, table10, takeout])).toBe('Bàn 11')
+  it('returns one past the highest existing table number when there is no gap', () => {
+    expect(getNextTableLabel([table1, table2, takeout])).toBe('Bàn 3')
   })
 
-  it('does not get blocked by gaps — always uses max + 1, never reuses a freed number', () => {
-    expect(getNextTableLabel([table1, table10])).toBe('Bàn 11')
+  it('fills the lowest gap left by a deleted table instead of always going past the max', () => {
+    expect(getNextTableLabel([table2, table10])).toBe('Bàn 1')
+  })
+
+  it('does not reuse a number still held by a merely-deactivated table', () => {
+    const inactiveTable1: Table = { ...table1, is_active: false }
+    expect(getNextTableLabel([inactiveTable1, table2])).toBe('Bàn 3')
   })
 })

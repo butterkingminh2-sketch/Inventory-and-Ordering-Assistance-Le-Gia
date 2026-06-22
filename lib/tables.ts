@@ -54,9 +54,15 @@ export function groupTablesByFloor(tables: Table[]): { takeout: Table | null; fl
   return { takeout, floors }
 }
 
-/** Pure function — no DB calls. Always one past the highest existing table number — never reuses a number freed by deactivating a table. */
+/**
+ * Pure function — no DB calls. The lowest table number not currently in
+ * use by any table, active or inactive — so a merely-deactivated table
+ * still holds its number (it might come back), but a number freed by an
+ * actual delete becomes available again instead of being gone forever.
+ */
 export function getNextTableLabel(tables: Table[]): string {
-  const numbers = tables.map(getTableNumber).filter((n): n is number => n !== null)
-  const next = numbers.length > 0 ? Math.max(...numbers) + 1 : 1
+  const numbers = new Set(tables.map(getTableNumber).filter((n): n is number => n !== null))
+  let next = 1
+  while (numbers.has(next)) next++
   return `Bàn ${next}`
 }
