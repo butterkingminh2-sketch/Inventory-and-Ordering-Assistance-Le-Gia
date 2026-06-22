@@ -70,7 +70,7 @@ export default function LoginPage() {
         <p className="text-sm text-gray-500">Đăng nhập để tiếp tục</p>
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>
+          <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg animate-fade-slide-up">{error}</p>
         )}
 
         <div className="space-y-2">

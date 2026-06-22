@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { CountBadge } from './count-badge'
 import type { UserRole } from '@/lib/types'
 
 interface Tab {
@@ -19,6 +21,8 @@ interface Props {
 
 export function SidebarNav({ role, readyCount }: Props) {
   const pathname = usePathname()
+  const linkRefs = useRef<(HTMLAnchorElement | null)[]>([])
+  const [indicator, setIndicator] = useState<{ top: number; height: number } | null>(null)
 
   const tabs: Tab[] = role === 'foh'
     ? [
@@ -41,18 +45,33 @@ export function SidebarNav({ role, readyCount }: Props) {
     tabs.push({ href: '/analytics', labelVi: 'Thống kê', labelEn: 'Analytics', icon: 'bar_chart' })
   }
 
+  const activeIndex = tabs.findIndex(tab => pathname.startsWith(tab.href))
+
+  useLayoutEffect(() => {
+    const activeEl = linkRefs.current[activeIndex]
+    if (activeEl) setIndicator({ top: activeEl.offsetTop, height: activeEl.offsetHeight })
+  }, [activeIndex, tabs.length])
+
   return (
-    <nav aria-label="Navigation chính" className="py-2">
-      {tabs.map(tab => {
+    <nav aria-label="Navigation chính" className="relative py-2">
+      {indicator && (
+        <div
+          className="absolute left-2 right-2 bg-tertiary-fixed rounded-lg transition-all duration-300 ease-out"
+          style={{ top: indicator.top, height: indicator.height }}
+          aria-hidden
+        />
+      )}
+      {tabs.map((tab, i) => {
         const active = pathname.startsWith(tab.href)
         return (
           <Link
             key={tab.href}
             href={tab.href}
+            ref={el => { linkRefs.current[i] = el }}
             className={
               active
-                ? 'bg-tertiary-fixed text-on-tertiary-fixed rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 border-l-4 border-primary'
-                : 'text-on-surface-variant rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:bg-surface-container-highest transition-all'
+                ? 'relative z-10 text-on-tertiary-fixed rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 border-l-4 border-primary'
+                : 'relative z-10 text-on-surface-variant rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:bg-surface-container-highest transition-all'
             }
             aria-current={active ? 'page' : undefined}
           >
@@ -64,9 +83,10 @@ export function SidebarNav({ role, readyCount }: Props) {
               <span className="block text-label-en leading-tight opacity-70">{tab.labelEn}</span>
             </span>
             {tab.badge != null && tab.badge > 0 && (
-              <span className="bg-error text-on-error text-[11px] font-black rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
-                {tab.badge}
-              </span>
+              <CountBadge
+                count={tab.badge}
+                className="bg-error text-on-error text-[11px] font-black rounded-full min-w-[20px] h-5 flex items-center justify-center px-1"
+              />
             )}
           </Link>
         )

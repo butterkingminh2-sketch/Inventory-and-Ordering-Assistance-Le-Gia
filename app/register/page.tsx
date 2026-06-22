@@ -105,7 +105,7 @@ export default function RegisterPage() {
   const qrUrl = selectedBill ? buildVietQrUrl(bank, selectedBill.total, `LeGia ${selectedBill.tableLabel}`) : null
 
   const paymentBtn = (active: boolean) =>
-    `flex-1 min-h-touch-target-min rounded-lg text-label-vi font-bold transition-colors ${
+    `flex-1 min-h-touch-target-min rounded-lg text-label-vi font-bold active:scale-95 transition-all ${
       active ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
     }`
 
@@ -117,7 +117,7 @@ export default function RegisterPage() {
       </h2>
 
       {errorMsg && (
-        <p className="text-error text-label-vi font-bold bg-error-container rounded-lg p-stack-md mb-stack-lg">{errorMsg}</p>
+        <p className="text-error text-label-vi font-bold bg-error-container rounded-lg p-stack-md mb-stack-lg animate-fade-slide-up">{errorMsg}</p>
       )}
 
       {bills.length === 0 ? (
@@ -255,14 +255,14 @@ export default function RegisterPage() {
               <button
                 onClick={() => window.print()}
                 disabled={!selectedBill}
-                className="flex-1 bg-surface-container text-on-surface rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min disabled:opacity-50"
+                className="flex-1 bg-surface-container text-on-surface rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min disabled:opacity-50 active:scale-95 transition-transform"
               >
                 In hóa đơn
               </button>
               <button
                 onClick={handleComplete}
                 disabled={!selectedBill?.canCheckout || !paymentMethod}
-                className="flex-1 bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min disabled:opacity-50 shadow-md"
+                className="flex-1 bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min disabled:opacity-50 shadow-md active:scale-95 transition-transform"
               >
                 Hoàn tất
               </button>

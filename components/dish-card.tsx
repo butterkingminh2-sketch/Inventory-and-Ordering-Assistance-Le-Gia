@@ -67,7 +67,7 @@ export function DishCard({ dish, status, qty, atMax, onCardTap, onRemove }: Prop
               <>
                 <button
                   onClick={e => { e.stopPropagation(); onRemove() }}
-                  className="w-touch-target-min h-touch-target-min rounded-lg border border-outline-variant bg-surface-container-high text-primary text-xl font-bold flex items-center justify-center"
+                  className="w-touch-target-min h-touch-target-min rounded-lg border border-outline-variant bg-surface-container-high text-primary text-xl font-bold flex items-center justify-center active:scale-90 transition-transform"
                   aria-label={`Giảm ${dish.name_vi}`}
                 >
                   −

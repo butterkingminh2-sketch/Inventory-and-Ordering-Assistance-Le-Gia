@@ -80,15 +80,16 @@ export default function DangChayPage() {
 
   return (
     <div className="space-y-stack-lg max-w-2xl mx-auto">
-      {orders.map(order => (
-        <OrderCard
-          key={order.id}
-          order={order}
-          onCancel={handleCancel}
-          onDeliver={handleDeliver}
-          onReorder={handleReorder}
-          onEdit={handleEdit}
-        />
+      {orders.map((order, index) => (
+        <div key={order.id} className="animate-fade-slide-up" style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}>
+          <OrderCard
+            order={order}
+            onCancel={handleCancel}
+            onDeliver={handleDeliver}
+            onReorder={handleReorder}
+            onEdit={handleEdit}
+          />
+        </div>
       ))}
     </div>
   )

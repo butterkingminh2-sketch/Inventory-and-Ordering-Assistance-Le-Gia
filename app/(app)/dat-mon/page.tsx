@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { DishCard } from '@/components/dish-card'
 import { ToppingPanel } from '@/components/topping-panel'
+import { Toast } from '@/components/toast'
 import { BranchContext } from '../app-shell'
 import { getDishStatus, getMaxOrderableQty } from '@/lib/dish-availability'
 import { sortToppingsByRelevance } from '@/lib/topping-relevance'
@@ -278,11 +279,7 @@ export default function DatMonPage() {
 
   return (
     <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto">
-      {toast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-error text-on-error text-label-vi font-bold px-stack-lg py-2 rounded-xl z-50 shadow-lg">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
 
       {panelDish && (
         <ToppingPanel
@@ -304,7 +301,7 @@ export default function DatMonPage() {
           {takeoutTable && (
             <button
               onClick={() => { setSelectedTable(takeoutTable.id); setStep('dishes') }}
-              className="w-full min-h-touch-target-min mb-stack-lg rounded-xl bg-primary text-on-primary font-bold text-label-vi shadow-md hover:bg-primary-container transition-all"
+              className="w-full min-h-touch-target-min mb-stack-lg rounded-xl bg-primary text-on-primary font-bold text-label-vi shadow-md hover:bg-primary-container active:scale-95 transition-all"
             >
               {takeoutTable.label}
             </button>
@@ -318,7 +315,7 @@ export default function DatMonPage() {
                   <button
                     key={t.id}
                     onClick={() => { setSelectedTable(t.id); setStep('dishes') }}
-                    className="min-h-touch-target-min rounded-xl border-2 border-outline-variant bg-surface-container-lowest font-bold text-label-vi text-on-surface hover:border-primary hover:bg-primary-fixed transition-all"
+                    className="min-h-touch-target-min rounded-xl border-2 border-outline-variant bg-surface-container-lowest font-bold text-label-vi text-on-surface hover:border-primary hover:bg-primary-fixed active:scale-95 transition-all"
                   >
                     {t.label}
                   </button>
@@ -397,22 +394,27 @@ export default function DatMonPage() {
           )}
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pb-24">
-            {visibleDishes.map(dish => {
+            {visibleDishes.map((dish, index) => {
               const status = getDishStatus(dish.id, recipes, items)
               const ownQty = lines.filter(l => l.dishId === dish.id).length
               const stockQty = stockQuantities[dish.id] ?? 0
               const maxQty = getMaxOrderableQty(dish.id, recipes, items, stockQuantities)
               const atMax = status !== 'unavailable' && stockQty >= maxQty
               return (
-                <DishCard
+                <div
                   key={dish.id}
-                  dish={dish}
-                  status={status}
-                  qty={ownQty}
-                  atMax={atMax}
-                  onCardTap={() => handleCardTap(dish)}
-                  onRemove={() => removeLine(dish.id)}
-                />
+                  className="animate-fade-slide-up"
+                  style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
+                >
+                  <DishCard
+                    dish={dish}
+                    status={status}
+                    qty={ownQty}
+                    atMax={atMax}
+                    onCardTap={() => handleCardTap(dish)}
+                    onRemove={() => removeLine(dish.id)}
+                  />
+                </div>
               )
             })}
           </div>
@@ -421,7 +423,7 @@ export default function DatMonPage() {
             <div className="fixed bottom-touch-target-min md:bottom-0 left-0 right-0 p-gutter bg-surface border-t border-outline-variant">
               <button
                 onClick={() => setStep('review')}
-                className="w-full bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min shadow-md"
+                className="w-full bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min shadow-md active:scale-95 transition-transform"
               >
                 {lines.length > 0 ? `Xem lại đơn (${totalLineCount} món)` : 'Xem lại — sẽ hủy đơn'}
               </button>
@@ -479,7 +481,7 @@ export default function DatMonPage() {
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className={`w-full rounded-xl py-3 text-label-vi font-bold disabled:opacity-50 min-h-touch-target-min shadow-md ${
+            className={`w-full rounded-xl py-3 text-label-vi font-bold disabled:opacity-50 min-h-touch-target-min shadow-md active:scale-95 transition-transform ${
               lines.length === 0 ? 'bg-error text-on-error' : 'bg-primary text-on-primary'
             }`}
           >

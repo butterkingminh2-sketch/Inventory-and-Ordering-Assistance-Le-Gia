@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { CountBadge } from './count-badge'
 import type { UserRole } from '@/lib/types'
 
 interface Props {
@@ -43,9 +44,10 @@ export function BottomNav({ role, readyCount }: Props) {
             </span>
             <span>{tab.labelVi}</span>
             {'badge' in tab && tab.badge != null && tab.badge > 0 && (
-              <span className="absolute top-2 right-[calc(50%-18px)] bg-error text-on-error text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                {tab.badge}
-              </span>
+              <CountBadge
+                count={tab.badge}
+                className="absolute top-2 right-[calc(50%-18px)] bg-error text-on-error text-[10px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
+              />
             )}
           </Link>
         )

@@ -119,10 +119,50 @@
 .animate-slide-in-right { animation: slide-in-right 0.25s ease-out; }
 .animate-fade-in        { animation: fade-in 0.2s ease-out; }
 
+/* One-shot highlight when an order's status just changed (e.g. pending -> ready) */
+@keyframes status-flash {
+  0%   { box-shadow: 0 0 0 4px rgba(80, 99, 84, 0.5); }
+  100% { box-shadow: 0 0 0 4px rgba(80, 99, 84, 0); }
+}
+.animate-status-flash { animation: status-flash 1s ease-out; }
+
+/* Ready-count badge bump when the count changes */
+@keyframes badge-bump {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.animate-badge-bump { animation: badge-bump 0.4s ease-out; }
+
+/* Staggered fade+slide-up for list/grid entrance — pair with an inline
+   animation-delay per item index to stagger them. */
+@keyframes fade-slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-slide-up { animation: fade-slide-up 0.3s ease-out backwards; }
+
+/* Toast enter/exit — keeps the horizontal centering transform throughout */
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes toast-out {
+  from { opacity: 1; transform: translate(-50%, 0); }
+  to   { opacity: 0; transform: translate(-50%, 12px); }
+}
+.animate-toast-in  { animation: toast-in 0.25s ease-out; }
+.animate-toast-out { animation: toast-out 0.25s ease-in forwards; }
+
 @media (prefers-reduced-motion: reduce) {
   .animate-pulse-critical,
   .animate-slide-in-right,
-  .animate-fade-in {
+  .animate-fade-in,
+  .animate-status-flash,
+  .animate-badge-bump,
+  .animate-fade-slide-up,
+  .animate-toast-in,
+  .animate-toast-out {
     animation: none;
   }
 }

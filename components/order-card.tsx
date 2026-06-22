@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { isUrgent, elapsedLabel } from '@/lib/order-urgency'
 import type { OrderWithDetails } from '@/lib/types'
 
@@ -13,6 +14,20 @@ interface Props {
 
 export function OrderCard({ order, onCancel, onDeliver, onReorder, onEdit }: Props) {
   const urgent = order.status === 'ready' && isUrgent(order.ready_at)
+  const prevStatusRef = useRef(order.status)
+  const [justBecameReady, setJustBecameReady] = useState(false)
+
+  useEffect(() => {
+    if (prevStatusRef.current !== order.status) {
+      const becameReady = prevStatusRef.current === 'pending' && order.status === 'ready'
+      prevStatusRef.current = order.status
+      if (becameReady) {
+        setJustBecameReady(true)
+        const timeout = setTimeout(() => setJustBecameReady(false), 1000)
+        return () => clearTimeout(timeout)
+      }
+    }
+  }, [order.status])
 
   return (
     <article
@@ -20,7 +35,7 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder, onEdit }: Pro
         urgent
           ? 'bg-surface-container-lowest border-2 border-error animate-pulse-critical'
           : 'bg-surface-container-lowest border border-outline-variant'
-      }`}
+      } ${justBecameReady ? 'animate-status-flash' : ''}`}
     >
       {/* Left: order info */}
       <div className="flex-1 p-stack-lg space-y-2">
@@ -62,7 +77,7 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder, onEdit }: Pro
             future order-creation path skips that guard, this assertion would lie. */}
         <button
           onClick={() => onReorder(order.table_id!)}
-          className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 text-primary hover:bg-primary-fixed transition-colors last:rounded-br-xl"
+          className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 text-primary hover:bg-primary-fixed active:scale-95 transition-all last:rounded-br-xl"
           aria-label="Thêm món"
         >
           <span className="material-symbols-outlined text-[24px]" aria-hidden>add_circle</span>
@@ -72,7 +87,7 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder, onEdit }: Pro
         {order.status === 'pending' && (
           <button
             onClick={() => onEdit(order.id)}
-            className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 text-primary hover:bg-primary-fixed transition-colors last:rounded-br-xl"
+            className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 text-primary hover:bg-primary-fixed active:scale-95 transition-all last:rounded-br-xl"
             aria-label="Sửa đơn"
           >
             <span className="material-symbols-outlined text-[24px]" aria-hidden>edit</span>
@@ -82,7 +97,7 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder, onEdit }: Pro
 
         <button
           onClick={() => onCancel(order.id)}
-          className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 text-error hover:bg-error-container transition-colors last:rounded-br-xl"
+          className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 text-error hover:bg-error-container active:scale-95 transition-all last:rounded-br-xl"
           aria-label="Hủy đơn"
         >
           <span className="material-symbols-outlined text-[24px]" aria-hidden>cancel</span>
