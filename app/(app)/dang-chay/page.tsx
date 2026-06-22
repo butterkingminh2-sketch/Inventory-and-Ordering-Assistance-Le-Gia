@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState, useContext, useCallback } from 'react'
+import { useEffect, useRef, useState, useContext, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { OrderCard } from '@/components/order-card'
+import { Toast } from '@/components/toast'
 import { BranchContext } from '../app-shell'
 import { reverseOrderStock } from '@/lib/stock'
 import type { OrderWithDetails } from '@/lib/types'
@@ -11,8 +12,12 @@ import type { OrderWithDetails } from '@/lib/types'
 export default function DangChayPage() {
   const { branchId } = useContext(BranchContext)
   const [orders, setOrders] = useState<OrderWithDetails[]>([])
+  const [alertMessage, setAlertMessage] = useState<string | null>(null)
+  const ordersRef = useRef<OrderWithDetails[]>([])
   const router = useRouter()
   const supabase = createClient()
+
+  useEffect(() => { ordersRef.current = orders }, [orders])
 
   const loadOrders = useCallback(async () => {
     const { data } = await supabase
@@ -26,7 +31,13 @@ export default function DangChayPage() {
       .in('status', ['pending', 'ready'])
       .order('created_at', { ascending: true })
     if (data) setOrders(data as OrderWithDetails[])
+    return data as OrderWithDetails[] | null
   }, [branchId])
+
+  function showAlert(message: string) {
+    setAlertMessage(message)
+    setTimeout(() => setAlertMessage(null), 5000)
+  }
 
   useEffect(() => {
     // Initial fetch on mount/branch change — async, not a synchronous setState call.
@@ -38,7 +49,26 @@ export default function DangChayPage() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders', filter: `branch_id=eq.${branchId}` },
-        () => loadOrders(),
+        payload => {
+          if (payload.eventType === 'INSERT') {
+            const newOrderId = (payload.new as { id: string }).id
+            loadOrders().then(data => {
+              const newOrder = data?.find(o => o.id === newOrderId)
+              if (newOrder) showAlert(`Đơn mới — ${newOrder.table.label}`)
+            })
+            return
+          }
+
+          if (payload.eventType === 'UPDATE') {
+            const updated = payload.new as { id: string; status: string }
+            const previousOrder = ordersRef.current.find(o => o.id === updated.id)
+            if (updated.status === 'ready' && previousOrder?.status === 'pending') {
+              showAlert(`Sẵn sàng giao — ${previousOrder.table.label}`)
+            }
+          }
+
+          loadOrders()
+        },
       )
       .subscribe()
 
@@ -72,14 +102,18 @@ export default function DangChayPage() {
 
   if (orders.length === 0) {
     return (
-      <p className="text-on-surface-variant text-center mt-16 text-label-vi">
-        Không có đơn nào đang chạy
-      </p>
+      <>
+        <Toast message={alertMessage} tone="info" />
+        <p className="text-on-surface-variant text-center mt-16 text-label-vi">
+          Không có đơn nào đang chạy
+        </p>
+      </>
     )
   }
 
   return (
     <div className="space-y-stack-lg max-w-2xl mx-auto">
+      <Toast message={alertMessage} tone="info" />
       {orders.map((order, index) => (
         <div key={order.id} className="animate-fade-slide-up" style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}>
           <OrderCard
