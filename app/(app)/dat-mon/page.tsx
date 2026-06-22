@@ -14,6 +14,7 @@ import { groupTablesByFloor } from '@/lib/tables'
 import { matchesDishSearch } from '@/lib/dish-search'
 import { aggregateQuantities, linesFromOrderItems } from '@/lib/order-lines'
 import type { OrderLine } from '@/lib/order-lines'
+import { useOrderAlerts } from '@/hooks/use-order-alerts'
 import { num } from '@/lib/types'
 import type { Dish, Item, OrderItem, RecipeLine, Table } from '@/lib/types'
 
@@ -38,6 +39,7 @@ export default function DatMonPage() {
   const [step, setStep]               = useState<Step>('table')
   const [submitting, setSubmitting]   = useState(false)
   const [toast, setToast]             = useState<string | null>(null)
+  const orderAlert = useOrderAlerts(branchId)
 
   useEffect(() => {
     async function load() {
@@ -280,6 +282,7 @@ export default function DatMonPage() {
   return (
     <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto">
       <Toast message={toast} />
+      <Toast message={orderAlert} tone="info" topClassName="top-20" />
 
       {panelDish && (
         <ToppingPanel

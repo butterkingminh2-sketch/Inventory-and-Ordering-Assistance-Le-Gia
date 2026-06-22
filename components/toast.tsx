@@ -12,10 +12,12 @@ const TONE_CLASSES: Record<Tone, string> = {
 interface Props {
   message: string | null
   tone?: Tone
+  /** Tailwind top-offset class — lets two Toasts coexist on the same page without overlapping. */
+  topClassName?: string
 }
 
 /** Stays mounted through its exit animation — clearing `message` doesn't unmount it instantly. */
-export function Toast({ message, tone = 'error' }: Props) {
+export function Toast({ message, tone = 'error', topClassName = 'top-4' }: Props) {
   const [displayMessage, setDisplayMessage] = useState(message)
   const [visible, setVisible] = useState(!!message)
   const [prevMessage, setPrevMessage] = useState(message)
@@ -44,7 +46,7 @@ export function Toast({ message, tone = 'error' }: Props) {
 
   return (
     <div
-      className={`fixed top-4 left-1/2 ${TONE_CLASSES[tone]} text-label-vi font-bold px-stack-lg py-2 rounded-xl z-50 shadow-lg flex items-center gap-2 ${
+      className={`fixed ${topClassName} left-1/2 ${TONE_CLASSES[tone]} text-label-vi font-bold px-stack-lg py-2 rounded-xl z-50 shadow-lg flex items-center gap-2 ${
         visible ? 'animate-toast-in' : 'animate-toast-out'
       }`}
     >
