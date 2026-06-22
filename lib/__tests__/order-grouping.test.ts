@@ -5,6 +5,7 @@ import type { OrderWithDetails } from '../types'
 const baseOrder = {
   branch_id: 'branch-1',
   created_by: null,
+  updated_at: '2026-06-20T10:00:00Z',
   ready_at: null,
   paid_at: null,
   payment_method: null,

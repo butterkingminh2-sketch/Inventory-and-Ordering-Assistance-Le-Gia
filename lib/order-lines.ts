@@ -1,3 +1,5 @@
+import type { OrderItem } from './types'
+
 export interface OrderLine {
   id: string
   dishId: string
@@ -20,4 +22,27 @@ export function aggregateQuantities(lines: OrderLine[]): Record<string, number> 
     }
   }
   return result
+}
+
+/**
+ * Pure function — no DB calls. Reconstructs cart-shaped OrderLines from a
+ * flat list of order_items, the inverse of how dat-mon submits an order:
+ * each root item (no parent_item_id) becomes a line, and every item whose
+ * parent_item_id points at it becomes a nested topping.
+ */
+export function linesFromOrderItems(items: OrderItem[]): OrderLine[] {
+  const roots = items.filter(item => !item.parent_item_id)
+
+  return roots.map(root => {
+    const toppings: Record<string, number> = {}
+    for (const item of items) {
+      if (item.parent_item_id === root.id) toppings[item.dish_id] = item.qty
+    }
+    return {
+      id: root.id,
+      dishId: root.dish_id,
+      toppings,
+      note: root.note ?? '',
+    }
+  })
 }

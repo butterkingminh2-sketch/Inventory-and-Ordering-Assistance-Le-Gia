@@ -6,6 +6,7 @@ const baseOrder = {
   branch_id: 'branch-1',
   created_by: null,
   created_at: '2026-06-19T10:00:00Z',
+  updated_at: '2026-06-19T10:00:00Z',
   ready_at: null,
   paid_at: null,
   payment_method: null,

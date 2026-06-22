@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { aggregateQuantities } from '../order-lines'
+import { aggregateQuantities, linesFromOrderItems } from '../order-lines'
 import type { OrderLine } from '../order-lines'
+import type { OrderItem } from '../types'
 
 describe('aggregateQuantities', () => {
   it('returns an empty record for no lines', () => {
@@ -40,5 +41,41 @@ describe('aggregateQuantities', () => {
       'dish-t1': 3,
       'dish-t2': 1,
     })
+  })
+})
+
+describe('linesFromOrderItems', () => {
+  it('returns one line per root item (no parent_item_id), with empty toppings', () => {
+    const items: OrderItem[] = [
+      { id: 'oi-1', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: null, parent_item_id: null },
+    ]
+    expect(linesFromOrderItems(items)).toEqual([
+      { id: 'oi-1', dishId: 'dish-a', toppings: {}, note: '' },
+    ])
+  })
+
+  it('nests a child item under its parent as a topping', () => {
+    const items: OrderItem[] = [
+      { id: 'oi-dish', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: null, parent_item_id: null },
+      { id: 'oi-topping', order_id: 'o1', dish_id: 'dish-topping', qty: 2, price_at_order: 10000, note: null, parent_item_id: 'oi-dish' },
+    ]
+    expect(linesFromOrderItems(items)).toEqual([
+      { id: 'oi-dish', dishId: 'dish-a', toppings: { 'dish-topping': 2 }, note: '' },
+    ])
+  })
+
+  it('carries a non-null note through to the line', () => {
+    const items: OrderItem[] = [
+      { id: 'oi-1', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: 'không hành', parent_item_id: null },
+    ]
+    expect(linesFromOrderItems(items)[0].note).toBe('không hành')
+  })
+
+  it('keeps separate root items as separate lines even when they share a dish_id', () => {
+    const items: OrderItem[] = [
+      { id: 'oi-1', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: null, parent_item_id: null },
+      { id: 'oi-2', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: null, parent_item_id: null },
+    ]
+    expect(linesFromOrderItems(items)).toHaveLength(2)
   })
 })
