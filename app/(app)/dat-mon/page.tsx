@@ -123,6 +123,15 @@ export default function DatMonPage() {
   const stockQuantities = aggregateQuantities(lines)
   const totalLineCount = Object.values(stockQuantities).reduce((sum, qty) => sum + qty, 0)
 
+  // The unavailable-override path means the user already chose to ignore
+  // the stock cap for this dish — no meaningful number to cap against, so
+  // just bound the manual-entry field at a sane size instead.
+  const panelMaxQuantity = panelDish
+    ? getDishStatus(panelDish.id, recipes, items) === 'unavailable'
+      ? 99
+      : Math.max(1, getMaxOrderableQty(panelDish.id, recipes, items, stockQuantities) - (stockQuantities[panelDish.id] ?? 0))
+    : 1
+
   function removeLine(dishId: string) {
     setLines(prev => {
       const idx = prev.map(l => l.dishId).lastIndexOf(dishId)
@@ -148,17 +157,19 @@ export default function DatMonPage() {
     setPanelDish(dish)
   }
 
-  function handlePanelConfirm({ toppingQuantities, note }: { toppingQuantities: Record<string, number>; note: string }) {
+  function handlePanelConfirm({ toppingQuantities, note, quantity }: { toppingQuantities: Record<string, number>; note: string; quantity: number }) {
     if (!panelDish) return
 
-    const newLine: OrderLine = {
+    const trimmedNote = note.trim()
+    const cleanToppings = Object.fromEntries(Object.entries(toppingQuantities).filter(([, qty]) => qty > 0))
+    const newLines: OrderLine[] = Array.from({ length: quantity }, () => ({
       id: crypto.randomUUID(),
       dishId: panelDish.id,
-      toppings: Object.fromEntries(Object.entries(toppingQuantities).filter(([, qty]) => qty > 0)),
-      note: note.trim(),
-    }
+      toppings: cleanToppings,
+      note: trimmedNote,
+    }))
 
-    setLines(prev => [...prev, newLine])
+    setLines(prev => [...prev, ...newLines])
     setPanelDish(null)
   }
 
@@ -294,6 +305,7 @@ export default function DatMonPage() {
           recipes={recipes}
           items={items}
           cartQuantities={stockQuantities}
+          maxQuantity={panelMaxQuantity}
           onConfirm={handlePanelConfirm}
           onClose={handlePanelClose}
         />
