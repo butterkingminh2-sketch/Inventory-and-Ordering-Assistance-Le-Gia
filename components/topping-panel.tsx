@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { getMaxOrderableQty } from '@/lib/dish-availability'
 import { num } from '@/lib/types'
-import type { Dish } from '@/lib/types'
+import type { Dish, Item, RecipeLine } from '@/lib/types'
 
 interface ConfirmResult {
   toppingQuantities: Record<string, number>
@@ -13,16 +14,33 @@ interface Props {
   dish: Dish
   toppings: Dish[]
   initialNote: string
+  recipes: RecipeLine[]
+  items: Item[]
+  /** Quantities already committed elsewhere in the cart (excludes this panel's own in-progress selections). */
+  cartQuantities: Record<string, number>
   onConfirm: (result: ConfirmResult) => void
   onClose: () => void
 }
 
-export function ToppingPanel({ dish, toppings, initialNote, onConfirm, onClose }: Props) {
+export function ToppingPanel({ dish, toppings, initialNote, recipes, items, cartQuantities, onConfirm, onClose }: Props) {
   const [closing, setClosing] = useState(false)
   const [toppingQuantities, setToppingQuantities] = useState<Record<string, number>>({})
   const [note, setNote] = useState(initialNote)
 
+  // Merges this panel's in-progress topping picks on top of what the rest of
+  // the cart already committed, so the cap check sees the true combined
+  // draw on any ingredient shared between toppings (or with other dishes).
+  const combinedQuantities: Record<string, number> = { ...cartQuantities }
+  for (const [id, qty] of Object.entries(toppingQuantities)) {
+    combinedQuantities[id] = (combinedQuantities[id] ?? 0) + qty
+  }
+
   function adjustTopping(toppingId: string, delta: 1 | -1) {
+    if (delta === 1) {
+      const maxQty = getMaxOrderableQty(toppingId, recipes, items, combinedQuantities)
+      const currentQty = combinedQuantities[toppingId] ?? 0
+      if (currentQty >= maxQty) return
+    }
     setToppingQuantities(prev => ({
       ...prev,
       [toppingId]: Math.max(0, (prev[toppingId] ?? 0) + delta),
@@ -57,11 +75,16 @@ export function ToppingPanel({ dish, toppings, initialNote, onConfirm, onClose }
           <ul className="divide-y divide-outline-variant mb-stack-lg">
             {toppings.map(topping => {
               const qty = toppingQuantities[topping.id] ?? 0
+              const maxQty = getMaxOrderableQty(topping.id, recipes, items, combinedQuantities)
+              const atMax = (combinedQuantities[topping.id] ?? 0) >= maxQty
               return (
                 <li key={topping.id} className="py-2 flex items-center justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-label-vi font-bold text-on-surface truncate">{topping.name_vi}</p>
                     <p className="text-label-en text-on-surface-variant">{num(topping.price).toLocaleString('vi-VN')}đ</p>
+                    {atMax && (
+                      <p className="text-label-en font-bold text-tertiary">Đã đạt giới hạn kho</p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {qty > 0 && (
@@ -78,7 +101,8 @@ export function ToppingPanel({ dish, toppings, initialNote, onConfirm, onClose }
                     )}
                     <button
                       onClick={() => adjustTopping(topping.id, 1)}
-                      className="w-touch-target-min h-touch-target-min rounded-lg bg-primary text-on-primary text-xl font-bold flex items-center justify-center"
+                      disabled={atMax}
+                      className="w-touch-target-min h-touch-target-min rounded-lg bg-primary text-on-primary text-xl font-bold flex items-center justify-center disabled:opacity-40"
                       aria-label={`Thêm ${topping.name_vi}`}
                     >
                       +

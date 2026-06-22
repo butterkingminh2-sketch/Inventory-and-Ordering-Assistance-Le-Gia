@@ -289,6 +289,9 @@ export default function DatMonPage() {
           dish={panelDish}
           toppings={panelToppings}
           initialNote=""
+          recipes={recipes}
+          items={items}
+          cartQuantities={stockQuantities}
           onConfirm={handlePanelConfirm}
           onClose={handlePanelClose}
         />
