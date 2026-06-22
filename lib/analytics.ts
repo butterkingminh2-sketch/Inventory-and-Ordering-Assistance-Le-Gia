@@ -115,6 +115,23 @@ export function getDaysRemaining(consumedInRange: number, daysInRange: number, c
   return currentStock / dailyRate
 }
 
+/**
+ * Pure function — no DB calls. "0.1 ngày" reads as a typo, not 2.4 hours —
+ * switches to whole hours under a day, and minutes under an hour, instead
+ * of a fractional day count that's technically correct but unreadable.
+ */
+export function formatTimeRemaining(daysRemaining: number): string {
+  if (daysRemaining <= 0) return 'hết ngay'
+
+  if (daysRemaining < 1) {
+    const hours = daysRemaining * 24
+    if (hours < 1) return `~${Math.round(hours * 60)} phút`
+    return `~${Math.round(hours)} giờ`
+  }
+
+  return `~${daysRemaining.toFixed(1)} ngày`
+}
+
 export interface RestockAlert {
   item: Item
   daysRemaining: number

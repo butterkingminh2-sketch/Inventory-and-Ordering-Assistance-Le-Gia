@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { createClient } from '@/lib/supabase/client'
 import { BranchContext } from '../app-shell'
 import { calculateDecrements } from '@/lib/stock'
-import { getDateRangeStart, getPriorRangeStart, rankByQuantity, leastByQuantity, rankByRevenue, getRestockAlerts, getDailyRevenue } from '@/lib/analytics'
+import { getDateRangeStart, getPriorRangeStart, rankByQuantity, leastByQuantity, rankByRevenue, getRestockAlerts, getDailyRevenue, formatTimeRemaining } from '@/lib/analytics'
 import type { RestockAlert } from '@/lib/analytics'
 import { ChatPanel } from '@/components/chat-panel'
 import { num } from '@/lib/types'
@@ -113,7 +113,7 @@ export default function AnalyticsPage() {
   const alerts = getRestockAlerts(items, consumptionByItemId, daysInRange, URGENCY_THRESHOLD_DAYS)
 
   function handleNhanBep(alert: RestockAlert) {
-    setChatDraft(`${alert.item.name_vi} sẽ hết trong ~${alert.daysRemaining.toFixed(1)} ngày`)
+    setChatDraft(`${alert.item.name_vi} sẽ hết trong ${formatTimeRemaining(alert.daysRemaining)}`)
   }
 
   return (
@@ -160,7 +160,7 @@ export default function AnalyticsPage() {
             {alerts.map(a => (
               <li key={a.item.id} className="flex items-center justify-between gap-2">
                 <span className="text-label-vi text-on-surface">
-                  {a.item.name_vi} — còn ~{a.daysRemaining.toFixed(1)} ngày
+                  {a.item.name_vi} — còn {formatTimeRemaining(a.daysRemaining)}
                 </span>
                 {role === 'manager' && (
                   <button onClick={() => handleNhanBep(a)} className="text-label-en font-bold text-error shrink-0">
@@ -242,7 +242,7 @@ export default function AnalyticsPage() {
       </div>
 
       {chatDraft !== null && role === 'manager' && (
-        <ChatPanel branchId={branchId} initialText={chatDraft} onClose={() => setChatDraft(null)} />
+        <ChatPanel branchId={branchId} initialText={chatDraft} initialChannel="kitchen" onClose={() => setChatDraft(null)} />
       )}
     </div>
   )

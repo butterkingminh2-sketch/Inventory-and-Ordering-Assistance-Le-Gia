@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getDateRangeStart, getPriorRangeStart, rankByQuantity, leastByQuantity, rankByRevenue, getDaysRemaining, getRestockAlerts, getDailyRevenue } from '../analytics'
+import { getDateRangeStart, getPriorRangeStart, rankByQuantity, leastByQuantity, rankByRevenue, getDaysRemaining, getRestockAlerts, getDailyRevenue, formatTimeRemaining } from '../analytics'
 import { getPublicChannelCutoff } from '../chat'
 import type { Dish, Item } from '../types'
 
@@ -112,6 +112,27 @@ describe('getDaysRemaining', () => {
   it('computes current stock divided by the daily rate', () => {
     // consumed 1050 over 7 days = 150/day; 7500 stock / 150 = 50 days
     expect(getDaysRemaining(1050, 7, 7500)).toBe(50)
+  })
+})
+
+describe('formatTimeRemaining', () => {
+  it('shows whole hours when under a day', () => {
+    expect(formatTimeRemaining(0.1)).toBe('~2 giờ')
+    expect(formatTimeRemaining(0.5)).toBe('~12 giờ')
+  })
+
+  it('shows under an hour in minutes', () => {
+    expect(formatTimeRemaining(0.02)).toBe('~29 phút')
+  })
+
+  it('shows one decimal of days once at or beyond a day', () => {
+    expect(formatTimeRemaining(1)).toBe('~1.0 ngày')
+    expect(formatTimeRemaining(2.5)).toBe('~2.5 ngày')
+  })
+
+  it('floors negative/zero remaining time at "hết ngay"', () => {
+    expect(formatTimeRemaining(0)).toBe('hết ngay')
+    expect(formatTimeRemaining(-1)).toBe('hết ngay')
   })
 })
 

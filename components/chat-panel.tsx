@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getPublicChannelCutoff } from '@/lib/chat'
 import type { MessageWithSender } from '@/lib/types'
 
-type Channel = 'public' | 'kitchen'
+export type Channel = 'public' | 'kitchen'
 
 const CHANNELS: Channel[] = ['public', 'kitchen']
 
@@ -18,11 +18,12 @@ interface Props {
   branchId: string
   onClose: () => void
   initialText?: string
+  initialChannel?: Channel
 }
 
-export function ChatPanel({ branchId, onClose, initialText }: Props) {
+export function ChatPanel({ branchId, onClose, initialText, initialChannel }: Props) {
   const [closing, setClosing] = useState(false)
-  const [channel, setChannel] = useState<Channel>('public')
+  const [channel, setChannel] = useState<Channel>(initialChannel ?? 'public')
   const [messages, setMessages] = useState<MessageWithSender[]>([])
   const [text, setText] = useState(initialText ?? '')
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
