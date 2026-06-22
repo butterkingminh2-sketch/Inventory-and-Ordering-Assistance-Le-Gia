@@ -92,7 +92,7 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder, onEdit }: Pro
         {order.status === 'ready' && (
           <button
             onClick={() => onDeliver(order.id)}
-            className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 bg-secondary text-on-secondary hover:bg-on-secondary-container transition-all active:scale-95 md:w-48 last:rounded-br-xl"
+            className="flex-1 min-h-touch-target-min md:min-h-24 px-stack-lg flex flex-col items-center justify-center gap-1 bg-secondary text-on-secondary hover:bg-on-secondary-container transition-all active:scale-95 md:w-48 last:rounded-br-xl"
             aria-label="Đã mang ra"
           >
             <span className="material-symbols-outlined text-[40px]" aria-hidden>check_circle</span>
