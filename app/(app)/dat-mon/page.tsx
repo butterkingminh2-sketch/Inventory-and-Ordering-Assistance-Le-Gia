@@ -8,12 +8,12 @@ import { ToppingPanel } from '@/components/topping-panel'
 import { BranchContext } from '../app-shell'
 import { getDishStatus, getMaxOrderableQty } from '@/lib/dish-availability'
 import { sortToppingsByRelevance } from '@/lib/topping-relevance'
-import { calculateDecrements, applyStockChange } from '@/lib/stock'
+import { calculateDecrements, applyStockChange, reverseOrderStock } from '@/lib/stock'
 import { groupTablesByFloor } from '@/lib/tables'
-import { aggregateQuantities } from '@/lib/order-lines'
+import { aggregateQuantities, linesFromOrderItems } from '@/lib/order-lines'
 import type { OrderLine } from '@/lib/order-lines'
 import { num } from '@/lib/types'
-import type { Dish, Item, RecipeLine, Table } from '@/lib/types'
+import type { Dish, Item, OrderItem, RecipeLine, Table } from '@/lib/types'
 
 type Step = 'table' | 'dishes' | 'review'
 
@@ -31,6 +31,7 @@ export default function DatMonPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [lines, setLines]             = useState<OrderLine[]>([])
   const [panelDish, setPanelDish]     = useState<Dish | null>(null)
+  const [editOrderId, setEditOrderId] = useState<string | null>(null)
   const [step, setStep]               = useState<Step>('table')
   const [submitting, setSubmitting]   = useState(false)
   const [toast, setToast]             = useState<string | null>(null)
@@ -46,8 +47,25 @@ export default function DatMonPage() {
       if (t.data) {
         setTables(t.data)
 
+        const editParam = searchParams.get('edit')
         const tableParam = searchParams.get('table')
-        if (tableParam && t.data.some(tbl => tbl.id === tableParam)) {
+
+        if (editParam) {
+          const { data: order } = await supabase
+            .from('orders')
+            .select('table_id, status, order_items(*)')
+            .eq('id', editParam)
+            .eq('branch_id', branchId)
+            .single()
+
+          if (order && order.status === 'pending' && order.table_id) {
+            setEditOrderId(editParam)
+            setSelectedTable(order.table_id)
+            setLines(linesFromOrderItems(order.order_items as OrderItem[]))
+            setStep('dishes')
+          }
+          router.replace('/dat-mon')
+        } else if (tableParam && t.data.some(tbl => tbl.id === tableParam)) {
           setSelectedTable(tableParam)
           setStep('dishes')
           // Clean the one-time navigation param out of the URL so a later
@@ -137,29 +155,17 @@ export default function DatMonPage() {
     setPanelDish(null)
   }
 
-  async function handleSubmit() {
-    if (!selectedTable || lines.length === 0) return
-    setSubmitting(true)
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setSubmitting(false); return }
-
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert({ branch_id: branchId, table_id: selectedTable, status: 'pending', created_by: user.id })
-      .select('id')
-      .single()
-
-    if (orderError || !order) { setSubmitting(false); return }
-
-    // Each line's dish row must be inserted (and its id known) before its
-    // toppings can be linked to it via parent_item_id — sequential per line.
+  // Inserts one order_item per line (qty 1) plus its toppings, linking each
+  // topping back to its dish row via parent_item_id. Toppings can only be
+  // inserted once the dish row's id is known, so this runs per line in
+  // sequence rather than as one bulk insert.
+  async function insertLines(orderId: string) {
     for (const line of lines) {
       const dish = dishes.find(d => d.id === line.dishId)!
       const { data: dishItem } = await supabase
         .from('order_items')
         .insert({
-          order_id: order.id,
+          order_id: orderId,
           dish_id: line.dishId,
           qty: 1,
           price_at_order: num(dish.price),
@@ -175,7 +181,7 @@ export default function DatMonPage() {
         .map(([toppingId, qty]) => {
           const topping = dishes.find(d => d.id === toppingId)!
           return {
-            order_id: order.id,
+            order_id: orderId,
             dish_id: toppingId,
             qty,
             price_at_order: num(topping.price),
@@ -188,6 +194,62 @@ export default function DatMonPage() {
         await supabase.from('order_items').insert(toppingRows)
       }
     }
+  }
+
+  async function handleSubmit() {
+    if (!selectedTable) return
+    setSubmitting(true)
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSubmitting(false); return }
+
+    if (editOrderId) {
+      // Reverse the order's realized stock impact (what actually happened,
+      // including any floor-at-zero clamping — never a fresh recipe
+      // recompute, or a previously floored ingredient gets over-credited),
+      // then replace its items and reapply a fresh decrement for the new
+      // contents. Stays correctly reversible later since both this
+      // reversal and the fresh decrement use the same 'order'/'cancellation'
+      // reasons reverseOrderStock already sums over.
+      await reverseOrderStock(editOrderId, user.id)
+
+      if (lines.length === 0) {
+        await supabase.from('orders').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', editOrderId)
+      } else {
+        await supabase.from('order_items').delete().eq('order_id', editOrderId)
+        await insertLines(editOrderId)
+        await supabase.from('orders').update({ updated_at: new Date().toISOString() }).eq('id', editOrderId)
+
+        const orderQtyEntries = Object.entries(stockQuantities).map(([dish_id, qty]) => ({ dish_id, qty }))
+        const decrements = calculateDecrements(orderQtyEntries, recipes)
+        const { floored } = await applyStockChange(decrements, 'order', user.id, editOrderId)
+
+        if (floored.length > 0) {
+          setToast('Kho không đủ — đã cập nhật về 0')
+          setTimeout(() => setToast(null), 4000)
+        }
+      }
+
+      setSubmitting(false)
+      setLines([])
+      setSelectedTable(null)
+      setEditOrderId(null)
+      setStep('table')
+      router.push('/dang-chay')
+      return
+    }
+
+    if (lines.length === 0) { setSubmitting(false); return }
+
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({ branch_id: branchId, table_id: selectedTable, status: 'pending', created_by: user.id })
+      .select('id')
+      .single()
+
+    if (orderError || !order) { setSubmitting(false); return }
+
+    await insertLines(order.id)
 
     const orderQtyEntries = Object.entries(stockQuantities).map(([dish_id, qty]) => ({ dish_id, qty }))
     const decrements = calculateDecrements(orderQtyEntries, recipes)
@@ -262,11 +324,20 @@ export default function DatMonPage() {
       {step === 'dishes' && (
         <div inert={panelDish !== null}>
           <div className="flex items-center gap-3 mb-stack-lg">
-            <button onClick={() => setStep('table')} className="text-primary text-label-vi font-bold flex items-center gap-1">
-              <span className="material-symbols-outlined text-[18px]" aria-hidden>arrow_back</span>
-              Bàn
-            </button>
-            <h2 className="text-headline-md font-bold text-on-surface">Chọn món</h2>
+            {editOrderId ? (
+              <button onClick={() => router.push('/dang-chay')} className="text-primary text-label-vi font-bold flex items-center gap-1">
+                <span className="material-symbols-outlined text-[18px]" aria-hidden>arrow_back</span>
+                Hủy sửa
+              </button>
+            ) : (
+              <button onClick={() => setStep('table')} className="text-primary text-label-vi font-bold flex items-center gap-1">
+                <span className="material-symbols-outlined text-[18px]" aria-hidden>arrow_back</span>
+                Bàn
+              </button>
+            )}
+            <h2 className="text-headline-md font-bold text-on-surface">
+              {editOrderId ? 'Sửa đơn' : 'Chọn món'}
+            </h2>
           </div>
 
           {categories.length > 0 && (
@@ -318,13 +389,13 @@ export default function DatMonPage() {
             })}
           </div>
 
-          {lines.length > 0 && (
+          {(lines.length > 0 || editOrderId) && (
             <div className="fixed bottom-touch-target-min md:bottom-0 left-0 right-0 p-gutter bg-surface border-t border-outline-variant">
               <button
                 onClick={() => setStep('review')}
                 className="w-full bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min shadow-md"
               >
-                Xem lại đơn ({totalLineCount} món)
+                {lines.length > 0 ? `Xem lại đơn (${totalLineCount} món)` : 'Xem lại — sẽ hủy đơn'}
               </button>
             </div>
           )}
@@ -338,13 +409,20 @@ export default function DatMonPage() {
               <span className="material-symbols-outlined text-[18px]" aria-hidden>arrow_back</span>
               Món
             </button>
-            <h2 className="text-headline-md font-bold text-on-surface">Xác nhận đặt món</h2>
+            <h2 className="text-headline-md font-bold text-on-surface">
+              {editOrderId ? 'Xác nhận sửa đơn' : 'Xác nhận đặt món'}
+            </h2>
           </div>
 
           <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg mb-stack-lg space-y-2">
             <p className="text-label-en text-on-surface-variant">
               Bàn: <span className="font-bold text-on-surface">{tables.find(t => t.id === selectedTable)?.label}</span>
             </p>
+            {lines.length === 0 && (
+              <p className="text-error text-label-vi font-bold">
+                Đơn sẽ trống — xác nhận sẽ hủy toàn bộ đơn này.
+              </p>
+            )}
             {lines.map(line => {
               const dish = dishes.find(d => d.id === line.dishId)!
               const toppingEntries = Object.entries(line.toppings).filter(([, qty]) => qty > 0)
@@ -373,9 +451,15 @@ export default function DatMonPage() {
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="w-full bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold disabled:opacity-50 min-h-touch-target-min shadow-md"
+            className={`w-full rounded-xl py-3 text-label-vi font-bold disabled:opacity-50 min-h-touch-target-min shadow-md ${
+              lines.length === 0 ? 'bg-error text-on-error' : 'bg-primary text-on-primary'
+            }`}
           >
-            {submitting ? 'Đang đặt…' : 'Xác nhận đặt món'}
+            {submitting
+              ? 'Đang xử lý…'
+              : lines.length === 0
+                ? 'Hủy đơn'
+                : editOrderId ? 'Lưu thay đổi' : 'Xác nhận đặt món'}
           </button>
         </>
       )}

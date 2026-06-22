@@ -8,9 +8,10 @@ interface Props {
   onCancel: (orderId: string) => void
   onDeliver: (orderId: string) => void
   onReorder: (tableId: string) => void
+  onEdit: (orderId: string) => void
 }
 
-export function OrderCard({ order, onCancel, onDeliver, onReorder }: Props) {
+export function OrderCard({ order, onCancel, onDeliver, onReorder, onEdit }: Props) {
   const urgent = order.status === 'ready' && isUrgent(order.ready_at)
 
   return (
@@ -67,6 +68,17 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder }: Props) {
           <span className="material-symbols-outlined text-[24px]" aria-hidden>add_circle</span>
           <span className="text-label-en font-bold">Thêm món</span>
         </button>
+
+        {order.status === 'pending' && (
+          <button
+            onClick={() => onEdit(order.id)}
+            className="flex-1 min-h-touch-target-min px-stack-lg flex flex-col items-center justify-center gap-1 text-primary hover:bg-primary-fixed transition-colors last:rounded-br-xl"
+            aria-label="Sửa đơn"
+          >
+            <span className="material-symbols-outlined text-[24px]" aria-hidden>edit</span>
+            <span className="text-label-en font-bold">Sửa đơn</span>
+          </button>
+        )}
 
         <button
           onClick={() => onCancel(order.id)}

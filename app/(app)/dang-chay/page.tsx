@@ -66,6 +66,10 @@ export default function DangChayPage() {
     router.push(`/dat-mon?table=${tableId}`)
   }
 
+  function handleEdit(orderId: string) {
+    router.push(`/dat-mon?edit=${orderId}`)
+  }
+
   if (orders.length === 0) {
     return (
       <p className="text-on-surface-variant text-center mt-16 text-label-vi">
@@ -83,6 +87,7 @@ export default function DangChayPage() {
           onCancel={handleCancel}
           onDeliver={handleDeliver}
           onReorder={handleReorder}
+          onEdit={handleEdit}
         />
       ))}
     </div>
