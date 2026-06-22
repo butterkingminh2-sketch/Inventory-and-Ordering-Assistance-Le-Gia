@@ -107,17 +107,27 @@
 }
 .animate-pulse-critical { animation: pulse-critical 2s infinite; }
 
-/* Slide-in side panels (chat, topping picker) */
+/* Slide-in/out side panels (chat, topping picker) */
 @keyframes slide-in-right {
   from { transform: translateX(100%); }
   to   { transform: translateX(0); }
+}
+@keyframes slide-out-right {
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
 }
 @keyframes fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
-.animate-slide-in-right { animation: slide-in-right 0.25s ease-out; }
-.animate-fade-in        { animation: fade-in 0.2s ease-out; }
+@keyframes fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.animate-slide-in-right  { animation: slide-in-right 0.25s ease-out; }
+.animate-slide-out-right { animation: slide-out-right 0.25s ease-in forwards; }
+.animate-fade-in         { animation: fade-in 0.2s ease-out; }
+.animate-fade-out        { animation: fade-out 0.2s ease-in forwards; }
 
 /* One-shot highlight when an order's status just changed (e.g. pending -> ready) */
 @keyframes status-flash {
@@ -157,7 +167,9 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-pulse-critical,
   .animate-slide-in-right,
+  .animate-slide-out-right,
   .animate-fade-in,
+  .animate-fade-out,
   .animate-status-flash,
   .animate-badge-bump,
   .animate-fade-slide-up,

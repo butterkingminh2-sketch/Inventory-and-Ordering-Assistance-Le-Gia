@@ -21,6 +21,7 @@ interface Props {
 }
 
 export function ChatPanel({ branchId, onClose, initialText }: Props) {
+  const [closing, setClosing] = useState(false)
   const [channel, setChannel] = useState<Channel>('public')
   const [messages, setMessages] = useState<MessageWithSender[]>([])
   const [text, setText] = useState(initialText ?? '')
@@ -88,10 +89,22 @@ export function ChatPanel({ branchId, onClose, initialText }: Props) {
 
   const channels = CHANNELS
 
+  function handleClose() {
+    setClosing(true)
+    setTimeout(onClose, 250)
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/40 animate-fade-in" onClick={onClose} />
-      <div className="relative w-full max-w-sm bg-surface h-full flex flex-col shadow-lg animate-slide-in-right">
+      <div
+        className={`absolute inset-0 bg-black/40 ${closing ? 'animate-fade-out' : 'animate-fade-in'}`}
+        onClick={handleClose}
+      />
+      <div
+        className={`relative w-full max-w-sm bg-surface h-full flex flex-col shadow-lg ${
+          closing ? 'animate-slide-out-right' : 'animate-slide-in-right'
+        }`}
+      >
         <div className="p-stack-lg border-b border-outline-variant">
           <h3 className="text-headline-md font-bold text-on-surface mb-1">Trò chuyện</h3>
 

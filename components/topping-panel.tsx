@@ -18,6 +18,7 @@ interface Props {
 }
 
 export function ToppingPanel({ dish, toppings, initialNote, onConfirm, onClose }: Props) {
+  const [closing, setClosing] = useState(false)
   const [toppingQuantities, setToppingQuantities] = useState<Record<string, number>>({})
   const [note, setNote] = useState(initialNote)
 
@@ -28,10 +29,27 @@ export function ToppingPanel({ dish, toppings, initialNote, onConfirm, onClose }
     }))
   }
 
+  function handleClose() {
+    setClosing(true)
+    setTimeout(onClose, 250)
+  }
+
+  function handleConfirm() {
+    setClosing(true)
+    setTimeout(() => onConfirm({ toppingQuantities, note }), 250)
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/40 animate-fade-in" onClick={onClose} />
-      <div className="relative w-full max-w-sm bg-surface h-full overflow-y-auto p-stack-lg shadow-lg animate-slide-in-right">
+      <div
+        className={`absolute inset-0 bg-black/40 ${closing ? 'animate-fade-out' : 'animate-fade-in'}`}
+        onClick={handleClose}
+      />
+      <div
+        className={`relative w-full max-w-sm bg-surface h-full overflow-y-auto p-stack-lg shadow-lg ${
+          closing ? 'animate-slide-out-right' : 'animate-slide-in-right'
+        }`}
+      >
         <h3 className="text-headline-md font-bold text-on-surface mb-1">{dish.name_vi}</h3>
         <p className="text-label-en text-on-surface-variant mb-stack-lg">Thêm món / Ghi chú</p>
 
@@ -81,8 +99,8 @@ export function ToppingPanel({ dish, toppings, initialNote, onConfirm, onClose }
         />
 
         <button
-          onClick={() => onConfirm({ toppingQuantities, note })}
-          className="w-full bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min shadow-md"
+          onClick={handleConfirm}
+          className="w-full bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min shadow-md active:scale-95 transition-transform"
         >
           Xong
         </button>

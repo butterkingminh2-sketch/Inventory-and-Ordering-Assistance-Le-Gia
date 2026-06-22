@@ -18,7 +18,11 @@ export function ChatTrigger({ role, branchId }: Props) {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} aria-label="Trò chuyện" className="flex items-center justify-center">
+      <button
+        onClick={() => setOpen(true)}
+        aria-label="Trò chuyện"
+        className="flex items-center justify-center w-touch-target-min h-touch-target-min rounded-full hover:bg-surface-container-high transition-colors"
+      >
         <span className="material-symbols-outlined text-[22px] text-on-surface-variant" aria-hidden>
           chat
         </span>
