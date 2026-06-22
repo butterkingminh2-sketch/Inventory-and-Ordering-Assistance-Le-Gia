@@ -104,7 +104,7 @@ export default function AnalyticsPage() {
   const percentChange = priorRevenue !== null && priorRevenue > 0
     ? ((currentRevenue - priorRevenue) / priorRevenue) * 100
     : null
-  const averageOrderValue = orders.length > 0 ? currentRevenue / orders.length : 0
+  const averageOrderValue = orders.length > 0 ? Math.round(currentRevenue / orders.length) : 0
 
   const consumption = calculateDecrements(orderLines, recipes, true)
   const consumptionByItemId: Record<string, number> = {}

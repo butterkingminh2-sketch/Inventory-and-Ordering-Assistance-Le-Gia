@@ -69,15 +69,16 @@ export default function SettingsPage() {
     setItems(p => p.map(i => i.id === id ? { ...i, is_active: true } : i))
   }
   async function deleteItem(id: string) {
-    const [recipeCheck, logCheck] = await Promise.all([
-      supabase.from('recipe_lines').select('id', { count: 'exact', head: true }).eq('item_id', id),
-      supabase.from('stock_logs').select('id', { count: 'exact', head: true }).eq('item_id', id),
-    ])
-    if ((recipeCheck.count ?? 0) > 0 || (logCheck.count ?? 0) > 0) {
-      alert('Không thể xóa — nguyên liệu này đã được dùng trong công thức hoặc lịch sử kho. Hãy tắt thay vì xóa.')
+    // Only recipe_lines blocks deletion — that's active configuration (a
+    // dish's current recipe needs item_id to stay valid). stock_logs is
+    // just historical audit data; the FK now sets it to null on delete
+    // instead of blocking, same as orders.table_id for table deletes.
+    const { count } = await supabase.from('recipe_lines').select('id', { count: 'exact', head: true }).eq('item_id', id)
+    if ((count ?? 0) > 0) {
+      alert('Không thể xóa — nguyên liệu này đang được dùng trong công thức món ăn. Hãy tắt thay vì xóa.')
       return
     }
-    if (!window.confirm('Xóa nguyên liệu này? Không thể hoàn tác.')) return
+    if (!window.confirm('Xóa nguyên liệu này? Lịch sử kho cũ vẫn được giữ lại, chỉ không còn gắn với nguyên liệu này nữa.')) return
     await supabase.from('items').delete().eq('id', id)
     setItems(p => p.filter(i => i.id !== id))
   }
@@ -355,12 +356,12 @@ export default function SettingsPage() {
           </div>
           <ul className="divide-y divide-outline-variant">
             {dishes.map(dish => (
-              <li key={dish.id} className="py-3 flex items-center justify-between">
-                <div>
+              <li key={dish.id} className="py-3 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex-1 min-w-[140px]">
                   <p className="font-bold text-on-surface">{dish.name_vi}</p>
                   {dish.name_en && <p className="text-label-en text-on-surface-variant">{dish.name_en}</p>}
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center flex-wrap gap-3">
                   <input placeholder="Phân loại" value={dish.category ?? ''}
                     onChange={e => updateDishCategory(dish.id, e.target.value)}
                     className="border border-outline-variant rounded px-2 py-1 w-24 text-label-en" />
