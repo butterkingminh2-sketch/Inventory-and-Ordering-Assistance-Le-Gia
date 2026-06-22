@@ -46,3 +46,40 @@ export function linesFromOrderItems(items: OrderItem[]): OrderLine[] {
     }
   })
 }
+
+export interface GroupedLine {
+  dishId: string
+  toppings: Record<string, number>
+  note: string
+  qty: number
+}
+
+function toppingsKey(toppings: Record<string, number>): string {
+  return Object.entries(toppings)
+    .filter(([, qty]) => qty > 0)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([id, qty]) => `${id}:${qty}`)
+    .join(',')
+}
+
+/**
+ * Pure function — no DB calls. Merges lines that are identical in every
+ * respect (same dish, same note, same toppings) into one with a summed
+ * qty — for display only, e.g. so Kitchen shows "×13" instead of 13
+ * separate "×1" rows when the same dish was tapped 13 times with nothing
+ * different about it. Lines that differ in note or toppings stay separate,
+ * since that difference is exactly what kitchen needs to see.
+ */
+export function groupIdenticalLines(lines: OrderLine[]): GroupedLine[] {
+  const groups = new Map<string, GroupedLine>()
+  for (const line of lines) {
+    const key = `${line.dishId}|${line.note}|${toppingsKey(line.toppings)}`
+    const existing = groups.get(key)
+    if (existing) {
+      existing.qty += 1
+    } else {
+      groups.set(key, { dishId: line.dishId, toppings: line.toppings, note: line.note, qty: 1 })
+    }
+  }
+  return Array.from(groups.values())
+}

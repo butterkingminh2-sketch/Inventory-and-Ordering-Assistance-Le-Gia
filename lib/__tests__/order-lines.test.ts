@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { aggregateQuantities, linesFromOrderItems } from '../order-lines'
+import { aggregateQuantities, linesFromOrderItems, groupIdenticalLines } from '../order-lines'
 import type { OrderLine } from '../order-lines'
 import type { OrderItem } from '../types'
 
@@ -77,5 +77,62 @@ describe('linesFromOrderItems', () => {
       { id: 'oi-2', order_id: 'o1', dish_id: 'dish-a', qty: 1, price_at_order: 45000, note: null, parent_item_id: null, comped: false },
     ]
     expect(linesFromOrderItems(items)).toHaveLength(2)
+  })
+})
+
+describe('groupIdenticalLines', () => {
+  it('merges lines with the same dish, note, and toppings into one with a summed qty', () => {
+    const lines: OrderLine[] = [
+      { id: 'l1', dishId: 'dish-a', toppings: {}, note: '' },
+      { id: 'l2', dishId: 'dish-a', toppings: {}, note: '' },
+      { id: 'l3', dishId: 'dish-a', toppings: {}, note: '' },
+    ]
+    expect(groupIdenticalLines(lines)).toEqual([
+      { dishId: 'dish-a', toppings: {}, note: '', qty: 3 },
+    ])
+  })
+
+  it('keeps lines with different notes separate even when the dish matches', () => {
+    const lines: OrderLine[] = [
+      { id: 'l1', dishId: 'dish-a', toppings: {}, note: 'không hành' },
+      { id: 'l2', dishId: 'dish-a', toppings: {}, note: '' },
+    ]
+    expect(groupIdenticalLines(lines)).toEqual([
+      { dishId: 'dish-a', toppings: {}, note: 'không hành', qty: 1 },
+      { dishId: 'dish-a', toppings: {}, note: '', qty: 1 },
+    ])
+  })
+
+  it('keeps lines with different toppings separate even when the dish matches', () => {
+    const lines: OrderLine[] = [
+      { id: 'l1', dishId: 'dish-a', toppings: { 'dish-topping': 1 }, note: '' },
+      { id: 'l2', dishId: 'dish-a', toppings: {}, note: '' },
+    ]
+    expect(groupIdenticalLines(lines)).toEqual([
+      { dishId: 'dish-a', toppings: { 'dish-topping': 1 }, note: '', qty: 1 },
+      { dishId: 'dish-a', toppings: {}, note: '', qty: 1 },
+    ])
+  })
+
+  it('merges lines whose toppings match regardless of key insertion order', () => {
+    const lines: OrderLine[] = [
+      { id: 'l1', dishId: 'dish-a', toppings: { 'dish-t1': 1, 'dish-t2': 2 }, note: '' },
+      { id: 'l2', dishId: 'dish-a', toppings: { 'dish-t2': 2, 'dish-t1': 1 }, note: '' },
+    ]
+    expect(groupIdenticalLines(lines)).toEqual([
+      { dishId: 'dish-a', toppings: { 'dish-t1': 1, 'dish-t2': 2 }, note: '', qty: 2 },
+    ])
+  })
+
+  it('keeps different dishes separate', () => {
+    const lines: OrderLine[] = [
+      { id: 'l1', dishId: 'dish-a', toppings: {}, note: '' },
+      { id: 'l2', dishId: 'dish-b', toppings: {}, note: '' },
+    ]
+    expect(groupIdenticalLines(lines)).toHaveLength(2)
+  })
+
+  it('returns an empty array for no lines', () => {
+    expect(groupIdenticalLines([])).toEqual([])
   })
 })

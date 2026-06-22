@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { isUrgent, elapsedLabel } from '@/lib/order-urgency'
+import { linesFromOrderItems, groupIdenticalLines } from '@/lib/order-lines'
 import type { OrderWithDetails } from '@/lib/types'
 
 interface Props {
@@ -28,6 +29,9 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder, onEdit }: Pro
       }
     }
   }, [order.status])
+
+  const dishNames = new Map(order.order_items.map(oi => [oi.dish_id, oi.dish.name_vi]))
+  const groupedLines = groupIdenticalLines(linesFromOrderItems(order.order_items))
 
   return (
     <article
@@ -58,15 +62,23 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder, onEdit }: Pro
         </p>
 
         <ul className="space-y-1 pt-1">
-          {order.order_items.map(oi => (
-            <li key={oi.id} className="flex justify-between text-body-md text-on-surface">
-              <span>
-                {oi.dish.name_vi}
-                {oi.note && <span className="block text-label-en text-on-surface-variant">{oi.note}</span>}
-              </span>
-              <span className="font-bold text-primary">×{oi.qty}</span>
-            </li>
-          ))}
+          {groupedLines.map((line, li) => {
+            const toppingEntries = Object.entries(line.toppings).filter(([, qty]) => qty > 0)
+            return (
+              <li key={li} className="flex justify-between text-body-md text-on-surface">
+                <span>
+                  {dishNames.get(line.dishId) ?? ''}
+                  {toppingEntries.map(([toppingId, qty]) => (
+                    <span key={toppingId} className="block text-label-en text-on-surface-variant">
+                      {dishNames.get(toppingId) ?? ''}{qty > 1 ? ` ×${qty}` : ''}
+                    </span>
+                  ))}
+                  {line.note && <span className="block text-label-en text-on-surface-variant">{line.note}</span>}
+                </span>
+                <span className="font-bold text-primary">×{line.qty}</span>
+              </li>
+            )
+          })}
         </ul>
       </div>
 

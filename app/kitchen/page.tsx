@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { elapsedLabel } from '@/lib/order-urgency'
 import { groupAdjacentByTable } from '@/lib/order-grouping'
+import { linesFromOrderItems, groupIdenticalLines } from '@/lib/order-lines'
 import { Toast } from '@/components/toast'
 import type { OrderWithDetails } from '@/lib/types'
 
@@ -98,6 +99,9 @@ export default function KitchenPage() {
           ''
         const marginCls = i === 0 ? '' : isAddOn ? 'mt-0' : 'mt-stack-lg'
 
+        const dishNames = new Map(order.order_items.map(oi => [oi.dish_id, oi.dish.name_vi]))
+        const groupedLines = groupIdenticalLines(linesFromOrderItems(order.order_items))
+
         return (
           <div
             key={order.id}
@@ -130,15 +134,23 @@ export default function KitchenPage() {
               </div>
 
               <ul className="space-y-1 pt-1">
-                {order.order_items.map(oi => (
-                  <li key={oi.id} className="flex justify-between text-body-lg font-medium text-on-surface">
-                    <span>
-                      {oi.dish.name_vi}
-                      {oi.note && <span className="block text-label-en font-bold text-tertiary">Lưu ý: {oi.note}</span>}
-                    </span>
-                    <span className="font-black text-primary">×{oi.qty}</span>
-                  </li>
-                ))}
+                {groupedLines.map((line, li) => {
+                  const toppingEntries = Object.entries(line.toppings).filter(([, qty]) => qty > 0)
+                  return (
+                    <li key={li} className="flex justify-between text-body-lg font-medium text-on-surface">
+                      <span>
+                        {dishNames.get(line.dishId) ?? ''}
+                        {toppingEntries.map(([toppingId, qty]) => (
+                          <span key={toppingId} className="block text-label-en text-on-surface-variant">
+                            {dishNames.get(toppingId) ?? ''}{qty > 1 ? ` ×${qty}` : ''}
+                          </span>
+                        ))}
+                        {line.note && <span className="block text-label-en font-bold text-tertiary">Lưu ý: {line.note}</span>}
+                      </span>
+                      <span className="font-black text-primary">×{line.qty}</span>
+                    </li>
+                  )
+                })}
               </ul>
             </div>
 
