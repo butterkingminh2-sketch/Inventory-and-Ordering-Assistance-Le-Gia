@@ -38,7 +38,7 @@ export function useOrderAlerts(branchId: string | null) {
         .select('table:tables(label)')
         .eq('id', orderId)
         .single()
-      return (data as { table: { label: string } } | null)?.table.label ?? null
+      return (data as { table: { label: string } | null } | null)?.table?.label ?? null
     }
 
     supabase

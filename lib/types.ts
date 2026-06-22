@@ -92,7 +92,9 @@ export interface UserProfile {
 // Joined types used by UI
 export interface OrderWithDetails extends Order {
   order_items: Array<OrderItem & { dish: Pick<Dish, 'name_vi' | 'name_en'> }>
-  table: Pick<Table, 'label'>
+  // table_id is ON DELETE SET NULL (migration 018) — null once the table
+  // itself has been deleted, even though the order row survives.
+  table: Pick<Table, 'label'> | null
 }
 
 export interface Message {

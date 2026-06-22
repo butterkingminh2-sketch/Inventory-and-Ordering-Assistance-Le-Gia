@@ -103,4 +103,15 @@ describe('buildReversal', () => {
     ]))
     expect(result).toHaveLength(2)
   })
+
+  it('skips a log row whose item was since deleted (item_id set null)', () => {
+    // stock_logs.item_id is ON DELETE SET NULL (migration 019) — an old log
+    // for a deleted item must not produce a change with item_id: null, or
+    // applyStockChange's RPC raises NOT FOUND and aborts the whole reversal.
+    const result = buildReversal([
+      { item_id: 'item-gio', delta: -2 },
+      { item_id: null, delta: -1 },
+    ])
+    expect(result).toEqual([{ item_id: 'item-gio', delta: 2 }])
+  })
 })

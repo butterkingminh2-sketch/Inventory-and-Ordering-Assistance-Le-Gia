@@ -51,7 +51,7 @@ export async function applyStockChange(
 }
 
 export interface StockLogEntry {
-  item_id: string
+  item_id: string | null
   delta: number | string
 }
 
@@ -60,10 +60,14 @@ export interface StockLogEntry {
  * Reverses the REALIZED change recorded in stock_logs (what actually happened,
  * including any floor-at-zero clamping), never a theoretical recipe recomputation —
  * otherwise an order that floored an ingredient gets over-credited on cancellation.
+ * Rows with item_id null (item deleted since, migration 019's ON DELETE SET
+ * NULL) are skipped — there's nothing left to credit back, and passing
+ * item_id: null to the RPC would abort the whole reversal.
  */
 export function buildReversal(logs: StockLogEntry[]): StockChange[] {
   const totals: Record<string, number> = {}
   for (const log of logs) {
+    if (log.item_id === null) continue
     totals[log.item_id] = (totals[log.item_id] ?? 0) + num(log.delta)
   }
   return Object.entries(totals).map(([item_id, amount]) => ({

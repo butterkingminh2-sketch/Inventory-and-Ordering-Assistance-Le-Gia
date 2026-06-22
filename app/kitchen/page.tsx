@@ -53,7 +53,7 @@ export default function KitchenPage() {
             const newOrderId = (payload.new as { id: string }).id
             loadOrders(branchId).then(data => {
               const newOrder = data?.find(o => o.id === newOrderId)
-              setNewOrderAlert(`Đơn mới — ${newOrder?.table.label ?? ''}`)
+              setNewOrderAlert(`Đơn mới — ${newOrder?.table?.label ?? ''}`)
               setTimeout(() => setNewOrderAlert(null), 5000)
             })
           } else {
@@ -132,7 +132,7 @@ export default function KitchenPage() {
         const wholeCardProps = needsConfirmation ? {} : {
           role: 'button' as const,
           tabIndex: 0,
-          'aria-label': `Đánh dấu xong — ${order.table.label}${isAddOn ? ', đơn mới' : ''}`,
+          'aria-label': `Đánh dấu xong — ${order.table?.label ?? 'bàn đã xóa'}${isAddOn ? ', đơn mới' : ''}`,
           onClick: () => handleXong(order.id),
           onKeyDown: (e: React.KeyboardEvent) => {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleXong(order.id) }
@@ -177,7 +177,7 @@ export default function KitchenPage() {
 
             <div className="p-stack-lg space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-headline-md font-bold text-on-surface">{order.table.label}</p>
+                <p className="text-headline-md font-bold text-on-surface">{order.table?.label ?? 'Bàn đã xóa'}</p>
                 <p className="text-label-en text-on-surface-variant flex items-center gap-1">
                   <span className="material-symbols-outlined text-[16px]" aria-hidden>schedule</span>
                   {elapsedLabel(order.created_at)}

@@ -56,7 +56,7 @@ export default function DangChayPage() {
             const newOrderId = (payload.new as { id: string }).id
             loadOrders().then(data => {
               const newOrder = data?.find(o => o.id === newOrderId)
-              if (newOrder) showAlert(`Đơn mới — ${newOrder.table.label}`)
+              if (newOrder) showAlert(`Đơn mới — ${newOrder.table?.label ?? 'bàn đã xóa'}`)
             })
             return
           }
@@ -65,13 +65,13 @@ export default function DangChayPage() {
             const updated = payload.new as { id: string; status: string; needs_stock_confirmation: boolean }
             const previousOrder = ordersRef.current.find(o => o.id === updated.id)
             if (updated.status === 'ready' && previousOrder?.status === 'pending') {
-              showAlert(`Sẵn sàng giao — ${previousOrder.table.label}`)
+              showAlert(`Sẵn sàng giao — ${previousOrder.table?.label ?? 'bàn đã xóa'}`)
             }
             // needs_stock_confirmation is left true by Kitchen's "Báo hết
             // hàng" specifically so this is distinguishable from FOH's own
-            // ordinary cancel (which already clears it, or never set it).
+            // ordinary cancel, which clears it via handleCancel below.
             if (updated.status === 'cancelled' && updated.needs_stock_confirmation && previousOrder) {
-              showAlert(`Hủy do hết hàng — ${previousOrder.table.label}`, 'error')
+              showAlert(`Hủy do hết hàng — ${previousOrder.table?.label ?? 'bàn đã xóa'}`, 'error')
             }
           }
 
@@ -90,7 +90,11 @@ export default function DangChayPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    await supabase.from('orders').update({ status: 'cancelled' }).eq('id', orderId)
+    // Clears needs_stock_confirmation explicitly — an ordinary FOH cancel is
+    // not the same event as Kitchen's "Báo hết hàng", and leaving a
+    // previously-flagged order's flag set would make this cancel look like
+    // a kitchen-reported stock issue in the alert above.
+    await supabase.from('orders').update({ status: 'cancelled', needs_stock_confirmation: false }).eq('id', orderId)
     await reverseOrderStock(orderId, user.id)
   }
 

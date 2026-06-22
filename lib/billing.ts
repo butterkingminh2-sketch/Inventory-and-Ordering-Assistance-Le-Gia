@@ -69,7 +69,7 @@ export function groupOrdersByTable(orders: OrderWithDetails[]): TableBill[] {
 
     return {
       tableId,
-      tableLabel: tableOrders[0].table.label,
+      tableLabel: tableOrders[0].table?.label ?? 'Bàn đã xóa',
       total,
       canCheckout: tableOrders.every(order => order.status === 'delivered'),
       orderIds: tableOrders.map(order => order.id),

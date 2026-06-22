@@ -44,7 +44,7 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder, onEdit }: Pro
       {/* Left: order info */}
       <div className="flex-1 p-stack-lg space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-headline-md font-bold text-on-surface">{order.table.label}</p>
+          <p className="text-headline-md font-bold text-on-surface">{order.table?.label ?? 'Bàn đã xóa'}</p>
           <span className={`text-status-badge font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
             order.status === 'ready'
               ? 'bg-secondary-container text-on-secondary-container'
