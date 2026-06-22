@@ -6,6 +6,7 @@ import { SidebarNav } from '@/components/sidebar-nav'
 import { BottomNav } from '@/components/bottom-nav'
 import { AccountMenu } from '@/components/account-menu'
 import { ChatTrigger } from '@/components/chat-trigger'
+import { IdleLogoutGuard } from '@/components/idle-logout-guard'
 import type { Branch, UserRole } from '@/lib/types'
 
 interface BranchContextValue {
@@ -67,9 +68,13 @@ export function AppShell({ role, defaultBranchId, fullName, children }: Props) {
 
   const currentBranchName = branches.find(b => b.id === branchId)?.name
   const canSwitchBranch = role === 'manager' || role === 'owner'
+  // Manager/owner have access to financial data and settings, so an
+  // unattended session there is riskier than an unattended FOH one.
+  const idleTimeoutMinutes = canSwitchBranch ? 5 : 15
 
   return (
     <BranchContext.Provider value={{ branchId, setBranchId }}>
+      <IdleLogoutGuard timeoutMinutes={idleTimeoutMinutes} />
       {/* h-full flex column: header sizes itself, the row below it takes
           whatever's left. No more fixed-position elements assuming the
           header is exactly touch-target-min tall — if the header ever

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AccountMenu } from '@/components/account-menu'
 import { ChatTrigger } from '@/components/chat-trigger'
+import { IdleLogoutGuard } from '@/components/idle-logout-guard'
 
 export default async function RegisterLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -20,6 +21,7 @@ export default async function RegisterLayout({ children }: { children: React.Rea
 
   return (
     <div className="h-full flex flex-col bg-background">
+      <IdleLogoutGuard timeoutMinutes={profile.role === 'manager' ? 5 : 10} />
       <header className="flex items-center justify-between gap-3 px-gutter min-h-touch-target-min bg-surface border-b border-outline-variant">
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-[22px] text-on-surface-variant" aria-hidden>
