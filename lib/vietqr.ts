@@ -1,15 +1,9 @@
+import { stripDiacritics } from './text'
+
 export interface VietQrBankInfo {
   bankBin: string
   accountNo: string
   accountName: string
-}
-
-function stripDiacritics(input: string): string {
-  return input
-    .normalize('NFD')
-    .replace(new RegExp('[\\u0300-\\u036f]', 'g'), '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
 }
 
 /** Pure function — no network calls. Builds an img.vietqr.io quick-link URL. */
