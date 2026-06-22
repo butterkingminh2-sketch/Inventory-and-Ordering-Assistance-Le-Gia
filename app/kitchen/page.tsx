@@ -72,6 +72,13 @@ export default function KitchenPage() {
       .eq('id', orderId)
   }
 
+  async function handleConfirmStock(orderId: string) {
+    await supabase
+      .from('orders')
+      .update({ needs_stock_confirmation: false })
+      .eq('id', orderId)
+  }
+
   if (orders.length === 0) {
     return (
       <>
@@ -101,26 +108,35 @@ export default function KitchenPage() {
 
         const dishNames = new Map(order.order_items.map(oi => [oi.dish_id, oi.dish.name_vi]))
         const groupedLines = groupIdenticalLines(linesFromOrderItems(order.order_items))
+        const needsConfirmation = order.needs_stock_confirmation
+        const cardAction = needsConfirmation ? () => handleConfirmStock(order.id) : () => handleXong(order.id)
 
         return (
           <div
             key={order.id}
             role="button"
             tabIndex={0}
-            aria-label={`Đánh dấu xong — ${order.table.label}${isAddOn ? ', đơn mới' : ''}`}
-            onClick={() => handleXong(order.id)}
+            aria-label={`${needsConfirmation ? 'Xác nhận tồn kho' : 'Đánh dấu xong'} — ${order.table.label}${isAddOn ? ', đơn mới' : ''}`}
+            onClick={cardAction}
             onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleXong(order.id) }
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cardAction() }
             }}
             className={`border overflow-hidden shadow-sm cursor-pointer select-none active:scale-[0.98] transition-transform bg-surface-container-lowest ${roundingCls} ${marginCls} ${
-              isAddOn ? 'border-primary' : 'border-outline-variant'
+              needsConfirmation ? 'border-error' : isAddOn ? 'border-primary' : 'border-outline-variant'
             }`}
           >
-            {isAddOn && (
-              <div className="px-stack-lg pt-stack-md">
-                <span className="inline-block bg-tertiary-fixed text-on-tertiary-fixed text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
-                  + Đơn mới
-                </span>
+            {(isAddOn || needsConfirmation) && (
+              <div className="px-stack-lg pt-stack-md flex gap-2">
+                {isAddOn && (
+                  <span className="inline-block bg-tertiary-fixed text-on-tertiary-fixed text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+                    + Đơn mới
+                  </span>
+                )}
+                {needsConfirmation && (
+                  <span className="inline-block bg-error-container text-on-error-container text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+                    Thiếu tồn kho
+                  </span>
+                )}
               </div>
             )}
 
@@ -154,9 +170,13 @@ export default function KitchenPage() {
               </ul>
             </div>
 
-            <div className="w-full min-h-touch-target-min bg-secondary text-on-secondary text-label-vi font-bold flex items-center justify-center gap-2">
-              <span className="material-symbols-outlined text-[24px]" aria-hidden>check_circle</span>
-              Xong ✓ — chạm bất kỳ đâu trên thẻ
+            <div className={`w-full min-h-touch-target-min text-label-vi font-bold flex items-center justify-center gap-2 ${
+              needsConfirmation ? 'bg-error text-on-error' : 'bg-secondary text-on-secondary'
+            }`}>
+              <span className="material-symbols-outlined text-[24px]" aria-hidden>
+                {needsConfirmation ? 'inventory_2' : 'check_circle'}
+              </span>
+              {needsConfirmation ? 'Xác nhận tồn kho — chạm bất kỳ đâu trên thẻ' : 'Xong ✓ — chạm bất kỳ đâu trên thẻ'}
             </div>
           </div>
         )

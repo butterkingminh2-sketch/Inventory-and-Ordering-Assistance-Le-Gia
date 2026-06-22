@@ -48,9 +48,11 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder, onEdit }: Pro
           <span className={`text-status-badge font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
             order.status === 'ready'
               ? 'bg-secondary-container text-on-secondary-container'
-              : 'bg-tertiary-fixed text-on-tertiary-fixed'
+              : order.needs_stock_confirmation
+                ? 'bg-error-container text-on-error-container'
+                : 'bg-tertiary-fixed text-on-tertiary-fixed'
           }`}>
-            {order.status === 'ready' ? 'Xong' : 'Đang nấu'}
+            {order.status === 'ready' ? 'Xong' : order.needs_stock_confirmation ? 'Đợi bếp xác nhận' : 'Đang nấu'}
           </span>
         </div>
 

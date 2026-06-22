@@ -68,6 +68,7 @@ export interface Order {
   ready_at: string | null
   paid_at: string | null
   payment_method: PaymentMethod | null
+  needs_stock_confirmation: boolean
 }
 
 export interface OrderItem {

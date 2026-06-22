@@ -236,6 +236,7 @@ export default function DatMonPage() {
         const { floored } = await applyStockChange(decrements, 'order', user.id, editOrderId)
 
         if (floored.length > 0) {
+          await supabase.from('orders').update({ needs_stock_confirmation: true }).eq('id', editOrderId)
           setToast('Kho không đủ — đã cập nhật về 0')
           setTimeout(() => setToast(null), 4000)
         }
@@ -272,6 +273,7 @@ export default function DatMonPage() {
     setStep('table')
 
     if (floored.length > 0) {
+      await supabase.from('orders').update({ needs_stock_confirmation: true }).eq('id', order.id)
       setToast('Kho không đủ — đã cập nhật về 0')
       setTimeout(() => setToast(null), 4000)
     }

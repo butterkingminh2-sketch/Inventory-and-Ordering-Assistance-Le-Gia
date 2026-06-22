@@ -10,6 +10,7 @@ const baseOrder = {
   ready_at: null,
   paid_at: null,
   payment_method: null,
+  needs_stock_confirmation: false,
 }
 
 describe('groupOrdersByTable', () => {
