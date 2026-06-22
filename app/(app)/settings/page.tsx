@@ -7,6 +7,7 @@ import type { Item, Dish, RecipeLine, Table, ItemUnit } from '@/lib/types'
 import { ITEM_UNITS } from '@/lib/types'
 import { QuantityInput } from '@/components/quantity-input'
 import { groupTablesByFloor, getNextTableLabel } from '@/lib/tables'
+import { stripDiacritics } from '@/lib/text'
 
 type Tab = 'items' | 'dishes' | 'recipes' | 'tables'
 
@@ -20,7 +21,7 @@ export default function SettingsPage() {
   const [recipes, setRecipes] = useState<RecipeLine[]>([])
   const [tables, setTables]   = useState<Table[]>([])
 
-  const [newItem,  setNewItem]  = useState({ name_vi: '', name_en: '', unit: '', low_threshold: 3 })
+  const [newItem,  setNewItem]  = useState({ name_vi: '', name_en: '', unit: '', category: '', low_threshold: 3 })
   const [newDish,  setNewDish]  = useState({ name_vi: '', name_en: '', price: 0, category: '', is_topping: false })
   const [newDishImage, setNewDishImage] = useState<File | null>(null)
   const [newLine,  setNewLine]  = useState({ item_id: '', qty_per_serving: 1 })
@@ -45,9 +46,17 @@ export default function SettingsPage() {
   // Items
   async function addItem() {
     if (!newItem.name_vi.trim() || !newItem.unit) return
+
+    const normalizedName = stripDiacritics(newItem.name_vi.trim()).toLowerCase()
+    const isDuplicate = items.some(i => i.is_active && stripDiacritics(i.name_vi).toLowerCase() === normalizedName)
+    if (isDuplicate) {
+      alert('Đã có nguyên liệu với tên này.')
+      return
+    }
+
     const { data } = await supabase.from('items')
-      .insert({ ...newItem, branch_id: branchId, quantity: 0 }).select().single()
-    if (data) { setItems(p => [...p, data]); setNewItem({ name_vi: '', name_en: '', unit: '', low_threshold: 3 }) }
+      .insert({ ...newItem, category: newItem.category || null, branch_id: branchId, quantity: 0 }).select().single()
+    if (data) { setItems(p => [...p, data]); setNewItem({ name_vi: '', name_en: '', unit: '', category: '', low_threshold: 3 }) }
   }
   async function deactivateItem(id: string) {
     await supabase.from('items').update({ is_active: false }).eq('id', id)
@@ -60,6 +69,10 @@ export default function SettingsPage() {
   async function updateItem(id: string, field: string, value: string | number) {
     await supabase.from('items').update({ [field]: value }).eq('id', id)
     setItems(p => p.map(i => i.id === id ? { ...i, [field]: value } : i))
+  }
+  async function updateItemCategory(id: string, category: string) {
+    await supabase.from('items').update({ category: category || null }).eq('id', id)
+    setItems(p => p.map(i => i.id === id ? { ...i, category: category || null } : i))
   }
 
   // Dishes
@@ -211,6 +224,9 @@ export default function SettingsPage() {
               <option value="">-- Đơn vị --</option>
               {ITEM_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
             </select>
+            <input placeholder="Phân loại" value={newItem.category}
+              onChange={e => setNewItem(p => ({ ...p, category: e.target.value }))}
+              className={inputCls} />
             <input type="number" placeholder="Ngưỡng thấp" value={newItem.low_threshold}
               onChange={e => setNewItem(p => ({ ...p, low_threshold: +e.target.value }))}
               className={inputCls} />
@@ -220,7 +236,7 @@ export default function SettingsPage() {
           </div>
           <table className="w-full text-label-vi">
             <thead><tr className="text-left text-on-surface-variant border-b border-outline-variant">
-              <th className="pb-2">Tên</th><th className="pb-2">Đơn vị</th>
+              <th className="pb-2">Tên</th><th className="pb-2">Phân loại</th><th className="pb-2">Đơn vị</th>
               <th className="pb-2">Ngưỡng</th><th className="pb-2">Trạng thái</th><th />
             </tr></thead>
             <tbody>
@@ -229,6 +245,11 @@ export default function SettingsPage() {
                   <td className="py-2">
                     <div className="font-bold">{item.name_vi}</div>
                     {item.name_en && <div className="text-label-en text-on-surface-variant">{item.name_en}</div>}
+                  </td>
+                  <td className="py-2">
+                    <input placeholder="Phân loại" value={item.category ?? ''}
+                      onChange={e => updateItemCategory(item.id, e.target.value)}
+                      className="border border-outline-variant rounded px-2 py-1 w-24 text-label-en" />
                   </td>
                   <td className="py-2"><select value={item.unit}
                     onChange={e => updateItem(item.id, 'unit', e.target.value)}

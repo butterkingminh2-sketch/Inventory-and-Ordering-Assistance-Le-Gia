@@ -5,7 +5,7 @@ import type { Item } from '@/lib/types'
 
 const base: Item = {
   id: 'i1', branch_id: 'b1', name_vi: 'Giò', name_en: 'Pork roll',
-  unit: 'phần', quantity: 5, low_threshold: 3, is_active: true, created_at: '',
+  unit: 'phần', category: null, quantity: 5, low_threshold: 3, is_active: true, created_at: '',
 }
 
 describe('IngredientCard status badge', () => {

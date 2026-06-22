@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { sortBySeverity } from '../stock-sort'
 import type { Item } from '../types'
 
-const base = { branch_id: 'b1', name_en: null, unit: 'phần' as const, is_active: true, created_at: '' }
+const base = { branch_id: 'b1', name_en: null, unit: 'phần' as const, category: null, is_active: true, created_at: '' }
 
 describe('sortBySeverity', () => {
   it('puts out-of-stock items before low-stock items', () => {

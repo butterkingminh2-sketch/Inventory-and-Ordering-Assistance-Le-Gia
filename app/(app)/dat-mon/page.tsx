@@ -11,7 +11,7 @@ import { getDishStatus, getMaxOrderableQty } from '@/lib/dish-availability'
 import { sortToppingsByRelevance } from '@/lib/topping-relevance'
 import { calculateDecrements, applyStockChange, reverseOrderStock } from '@/lib/stock'
 import { groupTablesByFloor } from '@/lib/tables'
-import { matchesDishSearch } from '@/lib/dish-search'
+import { matchesNameSearch } from '@/lib/dish-search'
 import { aggregateQuantities, linesFromOrderItems } from '@/lib/order-lines'
 import type { OrderLine } from '@/lib/order-lines'
 import { useOrderAlerts } from '@/hooks/use-order-alerts'
@@ -98,7 +98,7 @@ export default function DatMonPage() {
     ? dishes
     : dishes.filter(d => d.category === selectedCategory)
   const visibleDishes = isSearching
-    ? dishes.filter(d => matchesDishSearch(d, searchQuery))
+    ? dishes.filter(d => matchesNameSearch(d, searchQuery))
     : categoryFiltered
 
   // Toppings are scoped to the base dish's own menu section — e.g. a Lẩu

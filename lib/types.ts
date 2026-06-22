@@ -20,6 +20,7 @@ export interface Item {
   name_vi: string
   name_en: string | null
   unit: ItemUnit
+  category: string | null
   quantity: number | string
   low_threshold: number | string
   is_active: boolean

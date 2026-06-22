@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { IngredientCard } from '@/components/ingredient-card'
 import { applyStockChange } from '@/lib/stock'
 import { sortBySeverity } from '@/lib/stock-sort'
+import { matchesNameSearch } from '@/lib/dish-search'
 import { BranchContext } from '../app-shell'
 import { num } from '@/lib/types'
 import type { Item } from '@/lib/types'
@@ -15,6 +16,8 @@ export default function KhoPage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [sortToTop, setSortToTop] = useState(false)
   const [justSorted, setJustSorted] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const gridRef = useRef<HTMLDivElement>(null)
   const userIdRef = useRef<string | null>(null)
   const supabase = createClient()
@@ -84,9 +87,26 @@ export default function KhoPage() {
   const problemItems = items.filter(i => num(i.quantity) <= num(i.low_threshold))
   const outCount = items.filter(i => num(i.quantity) <= 0).length
   const lowCount = problemItems.length - outCount
-  const displayItems = sortToTop ? sortBySeverity(items) : items
+
+  const categories = [...new Set(items.map(i => i.category).filter((c): c is string => c !== null))]
+  const isSearching = searchQuery.trim().length > 0
+  // While searching, ignore the category filter entirely, same as Đặt món's
+  // dish search — the point is finding something fast without first
+  // picking the right category.
+  const categoryFiltered = selectedCategory === null
+    ? items
+    : items.filter(i => i.category === selectedCategory)
+  const filteredItems = isSearching
+    ? items.filter(i => matchesNameSearch(i, searchQuery))
+    : categoryFiltered
+  const displayItems = sortToTop ? sortBySeverity(filteredItems) : filteredItems
 
   function handleBarClick() {
+    // The bar's count is across the whole inventory — clear any active
+    // filter/search first, or the sorted view could hide the very items
+    // it's pointing at.
+    setSelectedCategory(null)
+    setSearchQuery('')
     setSortToTop(true)
     setJustSorted(true)
     gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -99,6 +119,54 @@ export default function KhoPage() {
         <p className="text-label-en text-on-surface-variant mb-stack-lg">
           Cập nhật lúc{' '}
           {lastUpdated.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+        </p>
+      )}
+
+      <div className="relative mb-stack-lg">
+        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant" aria-hidden>
+          search
+        </span>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Tìm nguyên liệu..."
+          aria-label="Tìm nguyên liệu"
+          className="w-full min-h-touch-target-min pl-10 pr-4 rounded-xl border border-outline-variant bg-surface-container-lowest text-label-vi text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
+
+      {!isSearching && categories.length > 0 && (
+        <div className="flex gap-2 mb-stack-lg overflow-x-auto pb-1">
+          <button
+            onClick={() => setSelectedCategory(null)}
+            className={`px-4 rounded-full text-label-vi font-bold whitespace-nowrap min-h-touch-target-min transition-colors ${
+              selectedCategory === null
+                ? 'bg-primary text-on-primary'
+                : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+            }`}
+          >
+            Tất cả
+          </button>
+          {categories.map(c => (
+            <button
+              key={c}
+              onClick={() => setSelectedCategory(c)}
+              className={`px-4 rounded-full text-label-vi font-bold whitespace-nowrap min-h-touch-target-min transition-colors ${
+                selectedCategory === c
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {isSearching && displayItems.length === 0 && (
+        <p className="text-on-surface-variant text-center mt-8 text-label-vi">
+          Không tìm thấy nguyên liệu nào
         </p>
       )}
 

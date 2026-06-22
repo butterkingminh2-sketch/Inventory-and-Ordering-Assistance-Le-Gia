@@ -8,7 +8,7 @@ const bunRieuBo: Dish = { ...baseDish, id: 'dish-bun-rieu-bo', name_vi: 'Bún ri
 const mocThem: Dish = { ...baseDish, id: 'dish-moc-them', name_vi: 'Mọc thêm', price: 8000 }
 const dishes = [bunRieuBo, mocThem]
 
-const baseItem = { branch_id: '', name_en: null, is_active: true, created_at: '' }
+const baseItem = { branch_id: '', name_en: null, category: null, is_active: true, created_at: '' }
 const bunTuoi: Item = { ...baseItem, id: 'item-bun-tuoi', name_vi: 'Bún tươi', unit: 'g', quantity: 7500, low_threshold: 5000 }
 const moc: Item = { ...baseItem, id: 'item-moc', name_vi: 'Mọc', unit: 'viên', quantity: 8, low_threshold: 10 }
 
