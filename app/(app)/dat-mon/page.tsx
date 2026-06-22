@@ -440,7 +440,7 @@ export default function DatMonPage() {
           </div>
 
           {(lines.length > 0 || editOrderId) && (
-            <div className="fixed bottom-touch-target-min md:bottom-0 left-0 right-0 p-gutter bg-surface border-t border-outline-variant">
+            <div className="fixed bottom-[var(--bottom-nav-height)] md:bottom-0 left-0 right-0 z-50 p-gutter bg-surface border-t border-outline-variant">
               <button
                 onClick={() => setStep('review')}
                 className="w-full bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min shadow-md active:scale-95 transition-transform"

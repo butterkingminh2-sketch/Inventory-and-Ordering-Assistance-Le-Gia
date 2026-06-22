@@ -106,7 +106,7 @@ export function AppShell({ role, defaultBranchId, fullName, children }: Props) {
 
           {/* Main content — scrolls internally so the native scrollbar is
               scoped to this region, not the whole page. */}
-          <main className="flex-1 overflow-y-auto p-margin-mobile md:p-margin-tablet lg:p-margin-desktop pb-touch-target-min md:pb-margin-desktop">
+          <main className="flex-1 overflow-y-auto p-margin-mobile md:p-margin-tablet lg:p-margin-desktop pb-[var(--bottom-nav-height)] md:pb-margin-desktop">
             {children}
           </main>
         </div>

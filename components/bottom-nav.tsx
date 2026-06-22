@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useRef } from 'react'
 import { CountBadge } from './count-badge'
 import type { UserRole } from '@/lib/types'
 
@@ -12,6 +13,24 @@ interface Props {
 
 export function BottomNav({ role, readyCount }: Props) {
   const pathname = usePathname()
+  const navRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const navEl = navRef.current
+    if (!navEl) return
+
+    // Fires on display:none <-> visible transitions too (crossing the
+    // md: breakpoint), correctly zeroing this out when BottomNav is
+    // hidden rather than leaving consumers reserving dead space.
+    function measure(el: HTMLElement) {
+      document.documentElement.style.setProperty('--bottom-nav-height', `${el.offsetHeight}px`)
+    }
+
+    measure(navEl)
+    const observer = new ResizeObserver(() => measure(navEl))
+    observer.observe(navEl)
+    return () => observer.disconnect()
+  }, [])
 
   const tabs = [
     ...(role === 'foh' ? [] : [{ href: '/kho', labelVi: 'Kho', icon: 'inventory_2' }]),
@@ -23,6 +42,7 @@ export function BottomNav({ role, readyCount }: Props) {
 
   return (
     <nav
+      ref={navRef}
       className="fixed bottom-0 left-0 right-0 z-40 flex bg-surface border-t border-outline-variant md:hidden"
       aria-label="Navigation chính"
     >

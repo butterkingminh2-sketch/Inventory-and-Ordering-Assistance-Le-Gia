@@ -184,7 +184,7 @@ export default function KhoPage() {
       {problemItems.length > 0 && (
         <button
           onClick={handleBarClick}
-          className="fixed bottom-touch-target-min md:bottom-0 left-0 right-0 z-50 bg-error-container text-on-error-container px-margin-tablet py-3 shadow-lg flex justify-between items-center animate-pulse hover:bg-error-container/90 active:scale-[0.99] transition-all"
+          className="fixed bottom-[var(--bottom-nav-height)] md:bottom-0 left-0 right-0 z-50 bg-error-container text-on-error-container px-margin-tablet py-3 shadow-lg flex justify-between items-center animate-pulse hover:bg-error-container/90 active:scale-[0.99] transition-all"
         >
           <span className="material-symbols-outlined text-[20px]" aria-hidden>warning</span>
           <span className="text-label-vi font-bold">

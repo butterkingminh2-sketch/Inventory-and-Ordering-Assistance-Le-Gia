@@ -87,6 +87,16 @@
   --text-status-badge:        13px;
 }
 
+/* Plain (non-@theme) custom property — BottomNav measures its own actual
+   rendered height and updates this at runtime, since its tab count varies
+   by role and could wrap to two lines on a narrow screen, growing taller
+   than the touch-target-min assumption every fixed-bottom element on
+   mobile was built around. Falls back to that same assumption before the
+   measurement runs (or on a page that never mounts BottomNav). */
+:root {
+  --bottom-nav-height: var(--spacing-touch-target-min);
+}
+
 @layer base {
   body {
     background-color: var(--color-background);
