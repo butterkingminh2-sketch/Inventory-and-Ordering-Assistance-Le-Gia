@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { elapsedLabel } from '@/lib/order-urgency'
 import { groupAdjacentByTable } from '@/lib/order-grouping'
 import { linesFromOrderItems, groupIdenticalLines } from '@/lib/order-lines'
+import { reverseOrderStock } from '@/lib/stock'
 import { Toast } from '@/components/toast'
 import type { OrderWithDetails } from '@/lib/types'
 
@@ -79,6 +80,19 @@ export default function KitchenPage() {
       .eq('id', orderId)
   }
 
+  async function handleOutOfStock(orderId: string) {
+    if (!window.confirm('Báo hết hàng và hủy đơn này? FOH sẽ được thông báo.')) return
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    // needs_stock_confirmation stays true (not cleared) — it's the marker
+    // Đang chạy/Đặt món use to show "hủy do hết hàng" instead of a plain
+    // cancellation, so FOH knows why the order disappeared.
+    await supabase.from('orders').update({ status: 'cancelled' }).eq('id', orderId)
+    await reverseOrderStock(orderId, user.id)
+  }
+
   if (orders.length === 0) {
     return (
       <>
@@ -109,19 +123,27 @@ export default function KitchenPage() {
         const dishNames = new Map(order.order_items.map(oi => [oi.dish_id, oi.dish.name_vi]))
         const groupedLines = groupIdenticalLines(linesFromOrderItems(order.order_items))
         const needsConfirmation = order.needs_stock_confirmation
-        const cardAction = needsConfirmation ? () => handleConfirmStock(order.id) : () => handleXong(order.id)
+
+        // Once flagged, the whole-card tap becomes ambiguous between two
+        // very different actions — replaced with two explicit buttons
+        // instead, rather than guessing which one a stray tap meant.
+        const wholeCardProps = needsConfirmation ? {} : {
+          role: 'button' as const,
+          tabIndex: 0,
+          'aria-label': `Đánh dấu xong — ${order.table.label}${isAddOn ? ', đơn mới' : ''}`,
+          onClick: () => handleXong(order.id),
+          onKeyDown: (e: React.KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleXong(order.id) }
+          },
+        }
 
         return (
           <div
             key={order.id}
-            role="button"
-            tabIndex={0}
-            aria-label={`${needsConfirmation ? 'Xác nhận tồn kho' : 'Đánh dấu xong'} — ${order.table.label}${isAddOn ? ', đơn mới' : ''}`}
-            onClick={cardAction}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cardAction() }
-            }}
-            className={`border overflow-hidden shadow-sm cursor-pointer select-none active:scale-[0.98] transition-transform bg-surface-container-lowest ${roundingCls} ${marginCls} ${
+            {...wholeCardProps}
+            className={`border overflow-hidden shadow-sm bg-surface-container-lowest ${
+              needsConfirmation ? '' : 'cursor-pointer select-none active:scale-[0.98] transition-transform'
+            } ${roundingCls} ${marginCls} ${
               needsConfirmation ? 'border-error' : isAddOn ? 'border-primary' : 'border-outline-variant'
             }`}
           >
@@ -170,14 +192,29 @@ export default function KitchenPage() {
               </ul>
             </div>
 
-            <div className={`w-full min-h-touch-target-min text-label-vi font-bold flex items-center justify-center gap-2 ${
-              needsConfirmation ? 'bg-error text-on-error' : 'bg-secondary text-on-secondary'
-            }`}>
-              <span className="material-symbols-outlined text-[24px]" aria-hidden>
-                {needsConfirmation ? 'inventory_2' : 'check_circle'}
-              </span>
-              {needsConfirmation ? 'Xác nhận tồn kho — chạm bất kỳ đâu trên thẻ' : 'Xong ✓ — chạm bất kỳ đâu trên thẻ'}
-            </div>
+            {needsConfirmation ? (
+              <div className="flex">
+                <button
+                  onClick={() => handleConfirmStock(order.id)}
+                  className="flex-1 min-h-touch-target-min text-label-vi font-bold flex items-center justify-center gap-2 bg-secondary text-on-secondary active:scale-[0.98] transition-transform"
+                >
+                  <span className="material-symbols-outlined text-[22px]" aria-hidden>inventory_2</span>
+                  Xác nhận còn hàng
+                </button>
+                <button
+                  onClick={() => handleOutOfStock(order.id)}
+                  className="flex-1 min-h-touch-target-min text-label-vi font-bold flex items-center justify-center gap-2 bg-error text-on-error active:scale-[0.98] transition-transform"
+                >
+                  <span className="material-symbols-outlined text-[22px]" aria-hidden>cancel</span>
+                  Báo hết hàng
+                </button>
+              </div>
+            ) : (
+              <div className="w-full min-h-touch-target-min text-label-vi font-bold flex items-center justify-center gap-2 bg-secondary text-on-secondary">
+                <span className="material-symbols-outlined text-[24px]" aria-hidden>check_circle</span>
+                Xong ✓ — chạm bất kỳ đâu trên thẻ
+              </div>
+            )}
           </div>
         )
       })}

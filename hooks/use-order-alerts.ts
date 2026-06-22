@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 interface OrderRow {
   id: string
   status: string
+  needs_stock_confirmation: boolean
 }
 
 /**
@@ -18,13 +19,15 @@ interface OrderRow {
  */
 export function useOrderAlerts(branchId: string | null) {
   const [message, setMessage] = useState<string | null>(null)
+  const [tone, setTone] = useState<'info' | 'error'>('info')
   const knownStatus = useRef<Map<string, string>>(new Map())
 
   useEffect(() => {
     if (!branchId) return
     const supabase = createClient()
 
-    function showAlert(text: string) {
+    function showAlert(text: string, alertTone: 'info' | 'error' = 'info') {
+      setTone(alertTone)
       setMessage(text)
       setTimeout(() => setMessage(null), 5000)
     }
@@ -40,7 +43,7 @@ export function useOrderAlerts(branchId: string | null) {
 
     supabase
       .from('orders')
-      .select('id, status')
+      .select('id, status, needs_stock_confirmation')
       .eq('branch_id', branchId)
       .in('status', ['pending', 'ready'])
       .then(({ data }) => {
@@ -70,6 +73,13 @@ export function useOrderAlerts(branchId: string | null) {
               const label = await lookupTableLabel(row.id)
               if (label) showAlert(`Sẵn sàng giao — ${label}`)
             }
+            // needs_stock_confirmation is left true by Kitchen's "Báo hết
+            // hàng" specifically so this is distinguishable from FOH's own
+            // ordinary cancel (which already clears it, or never set it).
+            if (row.status === 'cancelled' && row.needs_stock_confirmation && previousStatus !== 'cancelled') {
+              const label = await lookupTableLabel(row.id)
+              if (label) showAlert(`Hủy do hết hàng — ${label}`, 'error')
+            }
           }
         },
       )
@@ -78,5 +88,5 @@ export function useOrderAlerts(branchId: string | null) {
     return () => { supabase.removeChannel(channel) }
   }, [branchId])
 
-  return message
+  return { message, tone }
 }

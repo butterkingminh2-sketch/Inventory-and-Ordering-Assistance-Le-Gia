@@ -39,7 +39,7 @@ export default function DatMonPage() {
   const [step, setStep]               = useState<Step>('table')
   const [submitting, setSubmitting]   = useState(false)
   const [toast, setToast]             = useState<string | null>(null)
-  const orderAlert = useOrderAlerts(branchId)
+  const { message: orderAlert, tone: orderAlertTone } = useOrderAlerts(branchId)
 
   useEffect(() => {
     async function load() {
@@ -295,7 +295,7 @@ export default function DatMonPage() {
   return (
     <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto">
       <Toast message={toast} />
-      <Toast message={orderAlert} tone="info" topClassName="top-20" />
+      <Toast message={orderAlert} tone={orderAlertTone} topClassName="top-20" />
 
       {panelDish && (
         <ToppingPanel

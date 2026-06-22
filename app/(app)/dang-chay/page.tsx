@@ -13,6 +13,7 @@ export default function DangChayPage() {
   const { branchId } = useContext(BranchContext)
   const [orders, setOrders] = useState<OrderWithDetails[]>([])
   const [alertMessage, setAlertMessage] = useState<string | null>(null)
+  const [alertTone, setAlertTone] = useState<'info' | 'error'>('info')
   const ordersRef = useRef<OrderWithDetails[]>([])
   const router = useRouter()
   const supabase = createClient()
@@ -34,7 +35,8 @@ export default function DangChayPage() {
     return data as OrderWithDetails[] | null
   }, [branchId])
 
-  function showAlert(message: string) {
+  function showAlert(message: string, tone: 'info' | 'error' = 'info') {
+    setAlertTone(tone)
     setAlertMessage(message)
     setTimeout(() => setAlertMessage(null), 5000)
   }
@@ -60,10 +62,16 @@ export default function DangChayPage() {
           }
 
           if (payload.eventType === 'UPDATE') {
-            const updated = payload.new as { id: string; status: string }
+            const updated = payload.new as { id: string; status: string; needs_stock_confirmation: boolean }
             const previousOrder = ordersRef.current.find(o => o.id === updated.id)
             if (updated.status === 'ready' && previousOrder?.status === 'pending') {
               showAlert(`Sẵn sàng giao — ${previousOrder.table.label}`)
+            }
+            // needs_stock_confirmation is left true by Kitchen's "Báo hết
+            // hàng" specifically so this is distinguishable from FOH's own
+            // ordinary cancel (which already clears it, or never set it).
+            if (updated.status === 'cancelled' && updated.needs_stock_confirmation && previousOrder) {
+              showAlert(`Hủy do hết hàng — ${previousOrder.table.label}`, 'error')
             }
           }
 
@@ -103,7 +111,7 @@ export default function DangChayPage() {
   if (orders.length === 0) {
     return (
       <>
-        <Toast message={alertMessage} tone="info" />
+        <Toast message={alertMessage} tone={alertTone} />
         <p className="text-on-surface-variant text-center mt-16 text-label-vi">
           Không có đơn nào đang chạy
         </p>
@@ -113,7 +121,7 @@ export default function DangChayPage() {
 
   return (
     <div className="space-y-stack-lg max-w-2xl mx-auto">
-      <Toast message={alertMessage} tone="info" />
+      <Toast message={alertMessage} tone={alertTone} />
       {orders.map((order, index) => (
         <div key={order.id} className="animate-fade-slide-up" style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}>
           <OrderCard
