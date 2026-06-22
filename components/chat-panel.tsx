@@ -3,31 +3,25 @@
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getPublicChannelCutoff } from '@/lib/chat'
-import type { UserRole, MessageWithSender } from '@/lib/types'
+import type { MessageWithSender } from '@/lib/types'
 
-type Channel = 'public' | 'owner' | 'kitchen'
+type Channel = 'public' | 'kitchen'
+
+const CHANNELS: Channel[] = ['public', 'kitchen']
 
 const CHANNEL_LABELS: Record<Channel, string> = {
   public: 'Chung',
   kitchen: 'Bếp',
-  owner: 'Chủ quán',
-}
-
-function availableChannels(role: UserRole): Channel[] {
-  if (role === 'owner') return ['owner']
-  if (role === 'manager') return ['public', 'kitchen', 'owner']
-  return ['public', 'kitchen']
 }
 
 interface Props {
-  role: UserRole
   branchId: string
   onClose: () => void
   initialText?: string
 }
 
-export function ChatPanel({ role, branchId, onClose, initialText }: Props) {
-  const [channel, setChannel] = useState<Channel>(role === 'owner' ? 'owner' : 'public')
+export function ChatPanel({ branchId, onClose, initialText }: Props) {
+  const [channel, setChannel] = useState<Channel>('public')
   const [messages, setMessages] = useState<MessageWithSender[]>([])
   const [text, setText] = useState(initialText ?? '')
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
@@ -92,7 +86,7 @@ export function ChatPanel({ role, branchId, onClose, initialText }: Props) {
     setText('')
   }
 
-  const channels = availableChannels(role)
+  const channels = CHANNELS
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">

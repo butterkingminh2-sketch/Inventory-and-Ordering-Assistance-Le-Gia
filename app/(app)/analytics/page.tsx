@@ -242,7 +242,7 @@ export default function AnalyticsPage() {
       </div>
 
       {chatDraft !== null && role === 'manager' && (
-        <ChatPanel role={role} branchId={branchId} initialText={chatDraft} onClose={() => setChatDraft(null)} />
+        <ChatPanel branchId={branchId} initialText={chatDraft} onClose={() => setChatDraft(null)} />
       )}
     </div>
   )

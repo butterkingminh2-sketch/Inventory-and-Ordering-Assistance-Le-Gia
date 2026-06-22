@@ -12,6 +12,10 @@ interface Props {
 export function ChatTrigger({ role, branchId }: Props) {
   const [open, setOpen] = useState(false)
 
+  // The owner role has no chat presence — there's no owner-specific
+  // workflow built yet for anyone to message them about.
+  if (role === 'owner') return null
+
   return (
     <>
       <button onClick={() => setOpen(true)} aria-label="Trò chuyện" className="flex items-center justify-center">
@@ -19,7 +23,7 @@ export function ChatTrigger({ role, branchId }: Props) {
           chat
         </span>
       </button>
-      {open && <ChatPanel role={role} branchId={branchId} onClose={() => setOpen(false)} />}
+      {open && <ChatPanel branchId={branchId} onClose={() => setOpen(false)} />}
     </>
   )
 }
