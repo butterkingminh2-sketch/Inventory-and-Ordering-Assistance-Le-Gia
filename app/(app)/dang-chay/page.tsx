@@ -8,6 +8,7 @@ import { Toast } from '@/components/toast'
 import { BranchContext } from '../app-shell'
 import { reverseOrderStock } from '@/lib/stock'
 import { useLanguage } from '@/lib/language-context'
+import { pickLabel } from '@/lib/language'
 import type { OrderWithDetails } from '@/lib/types'
 
 export default function DangChayPage() {
@@ -18,7 +19,14 @@ export default function DangChayPage() {
   const ordersRef = useRef<OrderWithDetails[]>([])
   const router = useRouter()
   const supabase = createClient()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const languageRef = useRef(language)
+
+  // Kept out of the main subscription effect's deps below — `t` from
+  // useLanguage() is a new function reference every render, and even this
+  // primitive `language` value must not retrigger the effect, since that
+  // would tear down and recreate the realtime channel on every toggle.
+  useEffect(() => { languageRef.current = language }, [language])
 
   useEffect(() => { ordersRef.current = orders }, [orders])
 
@@ -58,7 +66,7 @@ export default function DangChayPage() {
             const newOrderId = (payload.new as { id: string }).id
             loadOrders().then(data => {
               const newOrder = data?.find(o => o.id === newOrderId)
-              if (newOrder) showAlert(`${t('Đơn mới', 'New order')} — ${newOrder.table?.label ?? t('bàn đã xóa', 'table deleted')}`)
+              if (newOrder) showAlert(`${pickLabel(languageRef.current, 'Đơn mới', 'New order')} — ${newOrder.table?.label ?? pickLabel(languageRef.current, 'bàn đã xóa', 'table deleted')}`)
             })
             return
           }
@@ -67,13 +75,13 @@ export default function DangChayPage() {
             const updated = payload.new as { id: string; status: string; needs_stock_confirmation: boolean }
             const previousOrder = ordersRef.current.find(o => o.id === updated.id)
             if (updated.status === 'ready' && previousOrder?.status === 'pending') {
-              showAlert(`${t('Sẵn sàng giao', 'Ready for delivery')} — ${previousOrder.table?.label ?? t('bàn đã xóa', 'table deleted')}`)
+              showAlert(`${pickLabel(languageRef.current, 'Sẵn sàng giao', 'Ready for delivery')} — ${previousOrder.table?.label ?? pickLabel(languageRef.current, 'bàn đã xóa', 'table deleted')}`)
             }
             // needs_stock_confirmation is left true by Kitchen's "Báo hết
             // hàng" specifically so this is distinguishable from FOH's own
             // ordinary cancel, which clears it via handleCancel below.
             if (updated.status === 'cancelled' && updated.needs_stock_confirmation && previousOrder) {
-              showAlert(`${t('Hủy do hết hàng', 'Cancelled due to out of stock')} — ${previousOrder.table?.label ?? t('bàn đã xóa', 'table deleted')}`, 'error')
+              showAlert(`${pickLabel(languageRef.current, 'Hủy do hết hàng', 'Cancelled due to out of stock')} — ${previousOrder.table?.label ?? pickLabel(languageRef.current, 'bàn đã xóa', 'table deleted')}`, 'error')
             }
           }
 
