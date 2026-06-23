@@ -3,15 +3,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getPublicChannelCutoff } from '@/lib/chat'
+import { useLanguage } from '@/lib/language-context'
 import type { MessageWithSender } from '@/lib/types'
 
 export type Channel = 'public' | 'kitchen'
 
 const CHANNELS: Channel[] = ['public', 'kitchen']
 
-const CHANNEL_LABELS: Record<Channel, string> = {
-  public: 'Chung',
-  kitchen: 'Bếp',
+const CHANNEL_LABELS: Record<Channel, { vi: string; en: string }> = {
+  public: { vi: 'Chung', en: 'General' },
+  kitchen: { vi: 'Bếp', en: 'Kitchen' },
 }
 
 interface Props {
@@ -30,6 +31,7 @@ export function ChatPanel({ branchId, onClose, initialText, initialChannel }: Pr
   const [sendError, setSendError] = useState(false)
   const supabase = createClient()
   const listEndRef = useRef<HTMLDivElement>(null)
+  const { t } = useLanguage()
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setCurrentUserId(user?.id ?? null))
@@ -107,7 +109,7 @@ export function ChatPanel({ branchId, onClose, initialText, initialChannel }: Pr
         }`}
       >
         <div className="p-stack-lg border-b border-outline-variant">
-          <h3 className="text-headline-md font-bold text-on-surface mb-1">Trò chuyện</h3>
+          <h3 className="text-headline-md font-bold text-on-surface mb-1">{t('Trò chuyện', 'Chat')}</h3>
 
           {channels.length > 1 && (
             <div className="flex gap-2 mt-2">
@@ -119,7 +121,7 @@ export function ChatPanel({ branchId, onClose, initialText, initialChannel }: Pr
                     channel === c ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant'
                   }`}
                 >
-                  {CHANNEL_LABELS[c]}
+                  {t(CHANNEL_LABELS[c].vi, CHANNEL_LABELS[c].en)}
                 </button>
               ))}
             </div>
@@ -128,14 +130,14 @@ export function ChatPanel({ branchId, onClose, initialText, initialChannel }: Pr
 
         <div className="flex-1 overflow-y-auto p-stack-lg space-y-2">
           {messages.length === 0 && (
-            <p className="text-label-en text-on-surface-variant text-center mt-stack-lg">Chưa có tin nhắn nào</p>
+            <p className="text-label-en text-on-surface-variant text-center mt-stack-lg">{t('Chưa có tin nhắn nào', 'No messages yet')}</p>
           )}
           {messages.map(msg => {
             const isMine = msg.sender_id === currentUserId
             return (
               <div key={msg.id} className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
                 <span className="text-label-en text-on-surface-variant mb-0.5">
-                  {msg.sender.full_name ?? 'Người dùng'}
+                  {msg.sender.full_name ?? t('Người dùng', 'User')}
                 </span>
                 <span
                   className={`max-w-[80%] rounded-xl px-3 py-2 text-label-vi ${
@@ -151,7 +153,7 @@ export function ChatPanel({ branchId, onClose, initialText, initialChannel }: Pr
         </div>
 
         {sendError && (
-          <p className="px-stack-lg py-1 text-label-en text-error">Không thể gửi tin nhắn. Vui lòng thử lại.</p>
+          <p className="px-stack-lg py-1 text-label-en text-error">{t('Không thể gửi tin nhắn. Vui lòng thử lại.', 'Could not send message. Please try again.')}</p>
         )}
 
         <div className="p-stack-lg border-t border-outline-variant flex gap-2">
@@ -159,14 +161,14 @@ export function ChatPanel({ branchId, onClose, initialText, initialChannel }: Pr
             value={text}
             onChange={e => setText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleSend() }}
-            placeholder="Nhập tin nhắn..."
+            placeholder={t('Nhập tin nhắn...', 'Type a message...')}
             className="flex-1 border border-outline-variant rounded-lg px-3 py-2 text-label-vi bg-surface-container-lowest text-on-surface focus:outline-none focus:ring-2 focus:ring-primary min-h-touch-target-min"
           />
           <button
             onClick={handleSend}
             className="bg-primary text-on-primary rounded-lg px-4 font-bold text-label-vi min-h-touch-target-min"
           >
-            Gửi
+            {t('Gửi', 'Send')}
           </button>
         </div>
       </div>
