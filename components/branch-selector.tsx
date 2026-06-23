@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useLanguage } from '@/lib/language-context'
 import { createClient } from '@/lib/supabase/client'
 import type { Branch } from '@/lib/types'
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function BranchSelector({ branchId, onBranchChange }: Props) {
+  const { t } = useLanguage()
   const [branches, setBranches] = useState<Branch[]>([])
 
   useEffect(() => {
@@ -26,7 +28,7 @@ export function BranchSelector({ branchId, onBranchChange }: Props) {
       value={branchId}
       onChange={e => onBranchChange(e.target.value)}
       className="text-label-vi font-bold bg-transparent border-none outline-none cursor-pointer min-h-touch-target-min px-1 text-on-surface"
-      aria-label="Chọn chi nhánh"
+      aria-label={t('Chọn chi nhánh', 'Select branch')}
     >
       {branches.map(b => (
         <option key={b.id} value={b.id}>{b.name}</option>
