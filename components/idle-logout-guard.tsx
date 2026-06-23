@@ -20,12 +20,12 @@ export function IdleLogoutGuard({ timeoutMinutes }: Props) {
         <h3 className="text-headline-md font-bold text-on-surface mt-2 mb-1">
           {t('Bạn vẫn còn đó không?', 'Are you still there?')}
         </h3>
-        <p className="text-label-md text-on-surface-variant mb-stack-lg">
+        <p className="text-label-vi text-on-surface-variant mb-stack-lg">
           {t(`Sẽ tự động đăng xuất sau ${secondsLeft} giây do không hoạt động.`, `You will be logged out in ${secondsLeft} seconds due to inactivity.`)}
         </p>
         <button
           onClick={staySignedIn}
-          className="w-full bg-primary text-on-primary rounded-xl py-3 text-label-md font-bold min-h-touch-target-min shadow-md active:scale-95 transition-transform"
+          className="w-full bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min shadow-md active:scale-95 transition-transform"
         >
           {t('Tiếp tục sử dụng', 'Continue')}
         </button>
