@@ -17,6 +17,9 @@ import type { OrderLine } from '@/lib/order-lines'
 import { useOrderAlerts } from '@/hooks/use-order-alerts'
 import { num } from '@/lib/types'
 import type { Dish, Item, OrderItem, RecipeLine, Table } from '@/lib/types'
+import { useLanguage } from '@/lib/language-context'
+import { pickName } from '@/lib/language'
+import { BilingualText } from '@/components/bilingual-text'
 
 type Step = 'table' | 'dishes' | 'review'
 
@@ -25,6 +28,7 @@ export default function DatMonPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
+  const { t, language } = useLanguage()
 
   const [tables, setTables]           = useState<Table[]>([])
   const [dishes, setDishes]           = useState<Dish[]>([])
@@ -43,14 +47,14 @@ export default function DatMonPage() {
 
   useEffect(() => {
     async function load() {
-      const [t, d, i, r] = await Promise.all([
+      const [tbls, d, i, r] = await Promise.all([
         supabase.from('tables').select('*').eq('branch_id', branchId).eq('is_active', true).order('label'),
         supabase.from('dishes').select('*').eq('branch_id', branchId).eq('is_active', true).order('name_vi'),
         supabase.from('items').select('*').eq('branch_id', branchId).eq('is_active', true),
         supabase.from('recipe_lines').select('*'),
       ])
-      if (t.data) {
-        setTables(t.data)
+      if (tbls.data) {
+        setTables(tbls.data)
 
         const editParam = searchParams.get('edit')
         const tableParam = searchParams.get('table')
@@ -70,7 +74,7 @@ export default function DatMonPage() {
             setStep('dishes')
           }
           router.replace('/dat-mon')
-        } else if (tableParam && t.data.some(tbl => tbl.id === tableParam)) {
+        } else if (tableParam && tbls.data.some(tbl => tbl.id === tableParam)) {
           setSelectedTable(tableParam)
           setStep('dishes')
           // Clean the one-time navigation param out of the URL so a later
@@ -144,7 +148,7 @@ export default function DatMonPage() {
     const status = getDishStatus(dish.id, recipes, items)
 
     if (status === 'unavailable') {
-      if (window.confirm('Món này hiện không đủ nguyên liệu. Vẫn muốn đặt?')) {
+      if (window.confirm(t('Món này hiện không đủ nguyên liệu. Vẫn muốn đặt?', 'This dish is currently out of ingredients. Order it anyway?'))) {
         setPanelDish(dish)
       }
       return
@@ -255,7 +259,7 @@ export default function DatMonPage() {
         await supabase.from('orders').update({ needs_stock_confirmation: floored.length > 0 }).eq('id', editOrderId)
 
         if (floored.length > 0) {
-          setToast('Kho không đủ — đã cập nhật về 0')
+          setToast(t('Kho không đủ — đã cập nhật về 0', 'Not enough stock — updated to 0'))
           setTimeout(() => setToast(null), 4000)
         }
       }
@@ -292,7 +296,7 @@ export default function DatMonPage() {
 
     if (floored.length > 0) {
       await supabase.from('orders').update({ needs_stock_confirmation: true }).eq('id', order.id)
-      setToast('Kho không đủ — đã cập nhật về 0')
+      setToast(t('Kho không đủ — đã cập nhật về 0', 'Not enough stock — updated to 0'))
       setTimeout(() => setToast(null), 4000)
     }
 
@@ -321,8 +325,7 @@ export default function DatMonPage() {
       {step === 'table' && (
         <>
           <h2 className="text-headline-md font-bold text-on-surface mb-stack-lg">
-            Chọn bàn
-            <span className="block text-label-en font-normal text-on-surface-variant">Select table</span>
+            <BilingualText vi="Chọn bàn" en="Select table" />
           </h2>
 
           {takeoutTable && (
@@ -336,15 +339,17 @@ export default function DatMonPage() {
 
           {floorGroups.map(group => (
             <div key={group.floor} className="mb-stack-lg">
-              <p className="text-label-en font-bold text-on-surface-variant uppercase mb-2">Tầng {group.floor}</p>
+              <p className="text-label-en font-bold text-on-surface-variant uppercase mb-2">
+                <BilingualText vi={`Tầng ${group.floor}`} en={`Floor ${group.floor}`} />
+              </p>
               <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                {group.tables.map(t => (
+                {group.tables.map(tbl => (
                   <button
-                    key={t.id}
-                    onClick={() => { setSelectedTable(t.id); setStep('dishes') }}
+                    key={tbl.id}
+                    onClick={() => { setSelectedTable(tbl.id); setStep('dishes') }}
                     className="min-h-touch-target-min rounded-xl border-2 border-outline-variant bg-surface-container-lowest font-bold text-label-vi text-on-surface hover:border-primary hover:bg-primary-fixed active:scale-95 transition-all"
                   >
-                    {t.label}
+                    {tbl.label}
                   </button>
                 ))}
               </div>
@@ -359,16 +364,16 @@ export default function DatMonPage() {
             {editOrderId ? (
               <button onClick={() => router.push('/dang-chay')} className="text-primary text-label-vi font-bold flex items-center gap-1">
                 <span className="material-symbols-outlined text-[18px]" aria-hidden>arrow_back</span>
-                Hủy sửa
+                <BilingualText vi="Hủy sửa" en="Cancel edit" />
               </button>
             ) : (
               <button onClick={() => setStep('table')} className="text-primary text-label-vi font-bold flex items-center gap-1">
                 <span className="material-symbols-outlined text-[18px]" aria-hidden>arrow_back</span>
-                Bàn
+                <BilingualText vi="Bàn" en="Table" />
               </button>
             )}
             <h2 className="text-headline-md font-bold text-on-surface">
-              {editOrderId ? 'Sửa đơn' : 'Chọn món'}
+              {editOrderId ? t('Sửa đơn', 'Edit order') : t('Chọn món', 'Select dishes')}
             </h2>
           </div>
 
@@ -380,8 +385,8 @@ export default function DatMonPage() {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Tìm món..."
-              aria-label="Tìm món"
+              placeholder={t('Tìm món...', 'Search dishes...')}
+              aria-label={t('Tìm món', 'Search dishes')}
               className="w-full min-h-touch-target-min pl-10 pr-4 rounded-xl border border-outline-variant bg-surface-container-lowest text-label-vi text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
@@ -396,7 +401,7 @@ export default function DatMonPage() {
                     : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
                 }`}
               >
-                Tất cả
+                <BilingualText vi="Tất cả" en="All" />
               </button>
               {categories.map(c => (
                 <button
@@ -416,7 +421,7 @@ export default function DatMonPage() {
 
           {isSearching && visibleDishes.length === 0 && (
             <p className="text-on-surface-variant text-center mt-8 text-label-vi">
-              Không tìm thấy món nào
+              <BilingualText vi="Không tìm thấy món nào" en="No dishes found" />
             </p>
           )}
 
@@ -452,7 +457,9 @@ export default function DatMonPage() {
                 onClick={() => setStep('review')}
                 className="w-full bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min shadow-md active:scale-95 transition-transform"
               >
-                {lines.length > 0 ? `Xem lại đơn (${totalLineCount} món)` : 'Xem lại — sẽ hủy đơn'}
+                {lines.length > 0
+                  ? t(`Xem lại đơn (${totalLineCount} món)`, `Review order (${totalLineCount} dishes)`)
+                  : t('Xem lại — sẽ hủy đơn', 'Review — this will cancel the order')}
               </button>
             </div>
           )}
@@ -464,20 +471,20 @@ export default function DatMonPage() {
           <div className="flex items-center gap-3 mb-stack-lg">
             <button onClick={() => setStep('dishes')} className="text-primary text-label-vi font-bold flex items-center gap-1">
               <span className="material-symbols-outlined text-[18px]" aria-hidden>arrow_back</span>
-              Món
+              <BilingualText vi="Món" en="Dishes" />
             </button>
             <h2 className="text-headline-md font-bold text-on-surface">
-              {editOrderId ? 'Xác nhận sửa đơn' : 'Xác nhận đặt món'}
+              {editOrderId ? t('Xác nhận sửa đơn', 'Confirm order changes') : t('Xác nhận đặt món', 'Confirm order')}
             </h2>
           </div>
 
           <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg mb-stack-lg space-y-2">
             <p className="text-label-en text-on-surface-variant">
-              Bàn: <span className="font-bold text-on-surface">{tables.find(t => t.id === selectedTable)?.label}</span>
+              {t('Bàn', 'Table')}: <span className="font-bold text-on-surface">{tables.find(tbl => tbl.id === selectedTable)?.label}</span>
             </p>
             {lines.length === 0 && (
               <p className="text-error text-label-vi font-bold">
-                Đơn sẽ trống — xác nhận sẽ hủy toàn bộ đơn này.
+                <BilingualText vi="Đơn sẽ trống — xác nhận sẽ hủy toàn bộ đơn này." en="The order will be empty — confirming will cancel this order entirely." />
               </p>
             )}
             {groupIdenticalLines(lines).map((group, gi) => {
@@ -486,12 +493,12 @@ export default function DatMonPage() {
               return (
                 <div key={gi} className="flex justify-between items-start">
                   <div>
-                    <span className="text-label-vi font-bold text-on-surface">{dish.name_vi}</span>
+                    <span className="text-label-vi font-bold text-on-surface">{pickName(dish, language)}</span>
                     {toppingEntries.map(([toppingId, qty]) => {
                       const topping = dishes.find(d => d.id === toppingId)
                       return (
                         <span key={toppingId} className="block text-label-en text-on-surface-variant">
-                          {topping?.name_vi}{qty > 1 ? ` ×${qty}` : ''}
+                          {topping ? pickName(topping, language) : ''}{qty > 1 ? ` ×${qty}` : ''}
                         </span>
                       )
                     })}
@@ -513,10 +520,10 @@ export default function DatMonPage() {
             }`}
           >
             {submitting
-              ? 'Đang xử lý…'
+              ? t('Đang xử lý…', 'Processing…')
               : lines.length === 0
-                ? 'Hủy đơn'
-                : editOrderId ? 'Lưu thay đổi' : 'Xác nhận đặt món'}
+                ? t('Hủy đơn', 'Cancel order')
+                : editOrderId ? t('Lưu thay đổi', 'Save changes') : t('Xác nhận đặt món', 'Confirm order')}
           </button>
         </>
       )}
