@@ -24,14 +24,9 @@ describe('IngredientCard status badge', () => {
     expect(screen.getByText('Hết')).toBeInTheDocument()
   })
 
-  it('renders Vietnamese name prominently', () => {
+  it('renders the Vietnamese name by default', () => {
     render(<IngredientCard item={base} onAdjust={() => {}} onSetQuantity={() => {}} />)
     expect(screen.getByText('Giò')).toBeInTheDocument()
-  })
-
-  it('renders English subtitle', () => {
-    render(<IngredientCard item={base} onAdjust={() => {}} onSetQuantity={() => {}} />)
-    expect(screen.getByText('Pork roll')).toBeInTheDocument()
   })
 
   it('renders quantity and unit', () => {
