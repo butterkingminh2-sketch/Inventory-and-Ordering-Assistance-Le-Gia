@@ -9,9 +9,11 @@ import { matchesNameSearch } from '@/lib/dish-search'
 import { BranchContext } from '../app-shell'
 import { num } from '@/lib/types'
 import type { Item } from '@/lib/types'
+import { useLanguage } from '@/lib/language-context'
 
 export default function KhoPage() {
   const { branchId } = useContext(BranchContext)
+  const { t } = useLanguage()
   const [items, setItems] = useState<Item[]>([])
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [sortToTop, setSortToTop] = useState(false)
@@ -117,7 +119,7 @@ export default function KhoPage() {
     <>
       {lastUpdated && (
         <p className="text-label-en text-on-surface-variant mb-stack-lg">
-          Cập nhật lúc{' '}
+          {t('Cập nhật lúc', 'Updated at')}{' '}
           {lastUpdated.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
         </p>
       )}
@@ -130,8 +132,8 @@ export default function KhoPage() {
           type="text"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Tìm nguyên liệu..."
-          aria-label="Tìm nguyên liệu"
+          placeholder={t('Tìm nguyên liệu...', 'Search ingredients...')}
+          aria-label={t('Tìm nguyên liệu', 'Search ingredients')}
           className="w-full min-h-touch-target-min pl-10 pr-4 rounded-xl border border-outline-variant bg-surface-container-lowest text-label-vi text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
@@ -146,7 +148,7 @@ export default function KhoPage() {
                 : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
             }`}
           >
-            Tất cả
+            {t('Tất cả', 'All')}
           </button>
           {categories.map(c => (
             <button
@@ -166,7 +168,7 @@ export default function KhoPage() {
 
       {isSearching && displayItems.length === 0 && (
         <p className="text-on-surface-variant text-center mt-8 text-label-vi">
-          Không tìm thấy nguyên liệu nào
+          {t('Không tìm thấy nguyên liệu nào', 'No ingredients found')}
         </p>
       )}
 
@@ -188,12 +190,12 @@ export default function KhoPage() {
         >
           <span className="material-symbols-outlined text-[20px]" aria-hidden>warning</span>
           <span className="text-label-vi font-bold">
-            {outCount > 0 && `${outCount} hết`}
+            {outCount > 0 && `${outCount} ${t('hết', 'out')}`}
             {outCount > 0 && lowCount > 0 && ' · '}
-            {lowCount > 0 && `${lowCount} sắp hết`}
+            {lowCount > 0 && `${lowCount} ${t('sắp hết', 'low')}`}
           </span>
           <span className="text-label-en flex items-center gap-1">
-            {problemItems.length} nguyên liệu cần chú ý
+            {t(`${problemItems.length} nguyên liệu cần chú ý`, `${problemItems.length} ingredients need attention`)}
             <span className="material-symbols-outlined text-[18px]" aria-hidden>arrow_upward</span>
           </span>
         </button>
