@@ -4,6 +4,7 @@ import { AccountMenu } from '@/components/account-menu'
 import { ChatTrigger } from '@/components/chat-trigger'
 import { IdleLogoutGuard } from '@/components/idle-logout-guard'
 import { LanguageProvider } from '@/lib/language-context'
+import { BilingualText } from '@/components/bilingual-text'
 
 export default async function RegisterLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -29,7 +30,7 @@ export default async function RegisterLayout({ children }: { children: React.Rea
             <span className="material-symbols-outlined text-[22px] text-on-surface-variant" aria-hidden>
               point_of_sale
             </span>
-            <span className="font-bold text-on-surface">Thu ngân</span>
+            <BilingualText vi="Thu ngân" en="Cashier" className="font-bold text-on-surface" />
           </div>
 
           <div className="flex items-center gap-3">

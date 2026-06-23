@@ -1,9 +1,11 @@
 import { num } from './types'
-import type { OrderWithDetails } from './types'
+import type { OrderWithDetails, Language } from './types'
+import { pickLabel } from './language'
 
 export interface TableBillTopping {
   id: string
   name_vi: string
+  name_en: string | null
   qty: number
   lineTotal: number
   comped: boolean
@@ -12,6 +14,7 @@ export interface TableBillTopping {
 export interface TableBillItem {
   id: string
   name_vi: string
+  name_en: string | null
   qty: number
   lineTotal: number
   note: string | null
@@ -29,7 +32,7 @@ export interface TableBill {
 }
 
 /** Pure function — no DB calls. Groups unpaid, non-cancelled orders into one bill per table, nesting each topping under the dish it was ordered with via parent_item_id. */
-export function groupOrdersByTable(orders: OrderWithDetails[]): TableBill[] {
+export function groupOrdersByTable(orders: OrderWithDetails[], language: Language): TableBill[] {
   const byTable = new Map<string, OrderWithDetails[]>()
 
   for (const order of orders) {
@@ -46,6 +49,7 @@ export function groupOrdersByTable(orders: OrderWithDetails[]): TableBill[] {
     const items: TableBillItem[] = roots.map(root => ({
       id: root.id,
       name_vi: root.dish.name_vi,
+      name_en: root.dish.name_en,
       qty: root.qty,
       lineTotal: root.qty * num(root.price_at_order),
       note: root.note,
@@ -55,6 +59,7 @@ export function groupOrdersByTable(orders: OrderWithDetails[]): TableBill[] {
         .map(topping => ({
           id: topping.id,
           name_vi: topping.dish.name_vi,
+          name_en: topping.dish.name_en,
           qty: topping.qty,
           lineTotal: topping.qty * num(topping.price_at_order),
           comped: topping.comped,
@@ -69,7 +74,7 @@ export function groupOrdersByTable(orders: OrderWithDetails[]): TableBill[] {
 
     return {
       tableId,
-      tableLabel: tableOrders[0].table?.label ?? 'Bàn đã xóa',
+      tableLabel: tableOrders[0].table?.label ?? pickLabel(language, 'Bàn đã xóa', 'Table deleted'),
       total,
       canCheckout: tableOrders.every(order => order.status === 'delivered'),
       orderIds: tableOrders.map(order => order.id),

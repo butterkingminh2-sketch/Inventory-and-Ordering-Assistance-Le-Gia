@@ -28,7 +28,7 @@ describe('groupOrdersByTable', () => {
       },
     ]
 
-    const bills = groupOrdersByTable(orders)
+    const bills = groupOrdersByTable(orders, 'vi')
 
     expect(bills).toHaveLength(1)
     expect(bills[0].tableId).toBe('table-1')
@@ -51,7 +51,7 @@ describe('groupOrdersByTable', () => {
       },
     ]
 
-    const bills = groupOrdersByTable(orders)
+    const bills = groupOrdersByTable(orders, 'vi')
 
     expect(bills[0].items[0].note).toBe('không đậu hũ')
   })
@@ -80,7 +80,7 @@ describe('groupOrdersByTable', () => {
       },
     ]
 
-    const bills = groupOrdersByTable(orders)
+    const bills = groupOrdersByTable(orders, 'vi')
 
     expect(bills).toHaveLength(1)
     expect(bills[0].total).toBe(80000)
@@ -111,7 +111,7 @@ describe('groupOrdersByTable', () => {
       },
     ]
 
-    const bills = groupOrdersByTable(orders)
+    const bills = groupOrdersByTable(orders, 'vi')
 
     expect(bills[0].canCheckout).toBe(false)
     expect(bills[0].total).toBe(85000)
@@ -141,7 +141,7 @@ describe('groupOrdersByTable', () => {
       },
     ]
 
-    const bills = groupOrdersByTable(orders)
+    const bills = groupOrdersByTable(orders, 'vi')
 
     expect(bills[0].total).toBe(65000)
     expect(bills[0].orderIds).toEqual(['order-1'])
@@ -162,12 +162,12 @@ describe('groupOrdersByTable', () => {
       },
     ]
 
-    const bills = groupOrdersByTable(orders)
+    const bills = groupOrdersByTable(orders, 'vi')
 
     expect(bills[0].items).toHaveLength(1)
     expect(bills[0].items[0].name_vi).toBe('Bát đặc biệt')
     expect(bills[0].items[0].toppings).toEqual([
-      { id: 'oi-topping', name_vi: 'Tóp mỡ', qty: 1, lineTotal: 10000, comped: false },
+      { id: 'oi-topping', name_vi: 'Tóp mỡ', name_en: null, qty: 1, lineTotal: 10000, comped: false },
     ])
     expect(bills[0].total).toBe(55000)
   })
@@ -189,12 +189,12 @@ describe('groupOrdersByTable', () => {
       },
     ]
 
-    const bills = groupOrdersByTable(orders)
+    const bills = groupOrdersByTable(orders, 'vi')
 
     expect(bills[0].items).toHaveLength(2)
     expect(bills[0].items[0].toppings).toEqual([
-      { id: 'oi-topping-1', name_vi: 'Tóp mỡ', qty: 1, lineTotal: 10000, comped: false },
-      { id: 'oi-topping-2', name_vi: 'Giò tai', qty: 1, lineTotal: 8000, comped: false },
+      { id: 'oi-topping-1', name_vi: 'Tóp mỡ', name_en: null, qty: 1, lineTotal: 10000, comped: false },
+      { id: 'oi-topping-2', name_vi: 'Giò tai', name_en: null, qty: 1, lineTotal: 8000, comped: false },
     ])
     expect(bills[0].items[1].toppings).toEqual([])
     expect(bills[0].total).toBe(108000)
@@ -215,7 +215,7 @@ describe('groupOrdersByTable', () => {
       },
     ]
 
-    const bills = groupOrdersByTable(orders)
+    const bills = groupOrdersByTable(orders, 'vi')
 
     expect(bills[0].items).toHaveLength(2)
     expect(bills[0].items.find(i => i.name_vi === 'Chả')?.comped).toBe(true)
@@ -238,7 +238,7 @@ describe('groupOrdersByTable', () => {
       },
     ]
 
-    const bills = groupOrdersByTable(orders)
+    const bills = groupOrdersByTable(orders, 'vi')
 
     expect(bills[0].items[0].toppings[0].comped).toBe(true)
     expect(bills[0].total).toBe(45000)
@@ -268,7 +268,7 @@ describe('groupOrdersByTable', () => {
       },
     ]
 
-    const bills = groupOrdersByTable(orders)
+    const bills = groupOrdersByTable(orders, 'vi')
 
     expect(bills).toHaveLength(2)
   })

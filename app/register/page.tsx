@@ -6,8 +6,12 @@ import { groupOrdersByTable } from '@/lib/billing'
 import type { TableBill } from '@/lib/billing'
 import { buildVietQrUrl } from '@/lib/vietqr'
 import type { OrderWithDetails, PaymentMethod } from '@/lib/types'
+import { useLanguage } from '@/lib/language-context'
+import { pickName } from '@/lib/language'
+import { BilingualText } from '@/components/bilingual-text'
 
 export default function RegisterPage() {
+  const { t, language } = useLanguage()
   const [branchId, setBranchId] = useState<string | null>(null)
   const [bills, setBills] = useState<TableBill[]>([])
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null)
@@ -35,11 +39,11 @@ export default function RegisterPage() {
       .neq('status', 'cancelled')
       .order('created_at', { ascending: true })
     if (error) {
-      setErrorMsg('Không thể tải danh sách bàn. Vui lòng thử lại.')
+      setErrorMsg(t('Không thể tải danh sách bàn. Vui lòng thử lại.', 'Could not load the list of tables. Please try again.'))
       return
     }
-    if (data) setBills(groupOrdersByTable(data as OrderWithDetails[]))
-  }, [supabase])
+    if (data) setBills(groupOrdersByTable(data as OrderWithDetails[], language))
+  }, [supabase, t, language])
 
   useEffect(() => {
     if (!branchId) return
@@ -86,7 +90,7 @@ export default function RegisterPage() {
       .select('id')
 
     if (error || !data || data.length !== selectedBill.orderIds.length) {
-      setErrorMsg('Bàn này đã được thanh toán hoặc có lỗi xảy ra. Vui lòng thử lại.')
+      setErrorMsg(t('Bàn này đã được thanh toán hoặc có lỗi xảy ra. Vui lòng thử lại.', 'This table has already been paid, or an error occurred. Please try again.'))
       fetchBills(branchId)
       return
     }
@@ -112,8 +116,7 @@ export default function RegisterPage() {
   return (
     <div className="flex flex-col h-full">
       <h2 className="text-headline-md font-bold text-on-surface mb-stack-lg">
-        Thu ngân
-        <span className="block text-label-en font-normal text-on-surface-variant">Register</span>
+        <BilingualText vi="Thu ngân" en="Register" />
       </h2>
 
       {errorMsg && (
@@ -121,7 +124,7 @@ export default function RegisterPage() {
       )}
 
       {bills.length === 0 ? (
-        <p className="text-on-surface-variant text-center mt-16 text-label-vi">Không có bàn nào đang mở</p>
+        <p className="text-on-surface-variant text-center mt-16 text-label-vi">{t('Không có bàn nào đang mở', 'No tables are currently open')}</p>
       ) : (
         <div className="flex-1 grid grid-cols-1 md:grid-cols-[200px_1fr_300px] gap-stack-lg min-h-0">
           {/* Table tabs */}
@@ -144,7 +147,7 @@ export default function RegisterPage() {
                   <span>{bill.total.toLocaleString('vi-VN')}đ</span>
                 </div>
                 {!bill.canCheckout && (
-                  <p className="text-label-en text-on-surface-variant mt-1">Còn món chưa giao</p>
+                  <BilingualText vi="Còn món chưa giao" en="Items not yet delivered" className="block text-label-en text-on-surface-variant mt-1" />
                 )}
               </button>
             ))}
@@ -160,22 +163,22 @@ export default function RegisterPage() {
                     <div key={item.id} className="flex justify-between items-start text-body-lg text-on-surface">
                       <div>
                         <span className={`font-bold ${item.comped ? 'line-through text-on-surface-variant' : ''}`}>
-                          {item.name_vi}
+                          {pickName(item, language)}
                         </span>
                         {item.comped && (
-                          <span className="ml-2 text-label-en font-bold text-secondary">Miễn phí</span>
+                          <BilingualText vi="Miễn phí" en="Free" className="ml-2 text-label-en font-bold text-secondary" />
                         )}
-                        {item.toppings.map(t => (
-                          <div key={t.id} className="flex items-center gap-2 pl-stack-md">
-                            <span className={`text-label-en text-on-surface-variant ${t.comped ? 'line-through' : ''}`}>
-                              {t.name_vi}{t.qty > 1 ? ` ×${t.qty}` : ''}
+                        {item.toppings.map(topping => (
+                          <div key={topping.id} className="flex items-center gap-2 pl-stack-md">
+                            <span className={`text-label-en text-on-surface-variant ${topping.comped ? 'line-through' : ''}`}>
+                              {pickName(topping, language)}{topping.qty > 1 ? ` ×${topping.qty}` : ''}
                             </span>
-                            {t.comped && <span className="text-label-en font-bold text-secondary">Miễn phí</span>}
+                            {topping.comped && <BilingualText vi="Miễn phí" en="Free" className="text-label-en font-bold text-secondary" />}
                             <button
-                              onClick={() => handleToggleComp(t.id, t.comped)}
+                              onClick={() => handleToggleComp(topping.id, topping.comped)}
                               className="text-label-en text-primary hover:underline"
                             >
-                              {t.comped ? 'Hủy miễn phí' : 'Miễn phí'}
+                              {topping.comped ? t('Hủy miễn phí', 'Undo free') : t('Miễn phí', 'Free')}
                             </button>
                           </div>
                         ))}
@@ -191,7 +194,7 @@ export default function RegisterPage() {
                           onClick={() => handleToggleComp(item.id, item.comped)}
                           className="text-label-en text-primary hover:underline whitespace-nowrap"
                         >
-                          {item.comped ? 'Hủy miễn phí' : 'Miễn phí'}
+                          {item.comped ? t('Hủy miễn phí', 'Undo free') : t('Miễn phí', 'Free')}
                         </button>
                       </div>
                     </div>
@@ -199,7 +202,7 @@ export default function RegisterPage() {
                 </div>
                 <hr className="border-outline-variant my-stack-lg" />
                 <div className="flex justify-between text-headline-md font-black text-primary">
-                  <span>TỔNG</span>
+                  <BilingualText vi="TỔNG" en="TOTAL" />
                   <span>{selectedBill.total.toLocaleString('vi-VN')}đ</span>
                 </div>
               </>
@@ -210,10 +213,10 @@ export default function RegisterPage() {
           <div className="flex flex-col gap-stack-lg">
             <div className="flex gap-2">
               <button onClick={() => setPaymentMethod('cash')} className={paymentBtn(paymentMethod === 'cash')}>
-                Tiền mặt
+                {t('Tiền mặt', 'Cash')}
               </button>
               <button onClick={() => setPaymentMethod('transfer')} className={paymentBtn(paymentMethod === 'transfer')}>
-                Chuyển khoản
+                {t('Chuyển khoản', 'Bank transfer')}
               </button>
             </div>
 
@@ -229,10 +232,10 @@ export default function RegisterPage() {
                       <span>{item.name_vi} x{item.qty}{item.comped ? ' (miễn phí)' : ''}</span>
                       <span>{item.comped ? '0' : item.lineTotal.toLocaleString('vi-VN')}</span>
                     </div>
-                    {item.toppings.map(t => (
-                      <div key={t.id} className="flex justify-between pl-3">
-                        <span>{t.name_vi} x{t.qty}{t.comped ? ' (miễn phí)' : ''}</span>
-                        <span>{t.comped ? '0' : t.lineTotal.toLocaleString('vi-VN')}</span>
+                    {item.toppings.map(topping => (
+                      <div key={topping.id} className="flex justify-between pl-3">
+                        <span>{topping.name_vi} x{topping.qty}{topping.comped ? ' (miễn phí)' : ''}</span>
+                        <span>{topping.comped ? '0' : topping.lineTotal.toLocaleString('vi-VN')}</span>
                       </div>
                     ))}
                   </div>
@@ -257,14 +260,14 @@ export default function RegisterPage() {
                 disabled={!selectedBill}
                 className="flex-1 bg-surface-container text-on-surface rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min disabled:opacity-50 active:scale-95 transition-transform"
               >
-                In hóa đơn
+                {t('In hóa đơn', 'Print receipt')}
               </button>
               <button
                 onClick={handleComplete}
                 disabled={!selectedBill?.canCheckout || !paymentMethod}
                 className="flex-1 bg-primary text-on-primary rounded-xl py-3 text-label-vi font-bold min-h-touch-target-min disabled:opacity-50 shadow-md active:scale-95 transition-transform"
               >
-                Hoàn tất
+                {t('Hoàn tất', 'Complete')}
               </button>
             </div>
           </div>
