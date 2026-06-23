@@ -7,6 +7,7 @@ import { OrderCard } from '@/components/order-card'
 import { Toast } from '@/components/toast'
 import { BranchContext } from '../app-shell'
 import { reverseOrderStock } from '@/lib/stock'
+import { useLanguage } from '@/lib/language-context'
 import type { OrderWithDetails } from '@/lib/types'
 
 export default function DangChayPage() {
@@ -17,6 +18,7 @@ export default function DangChayPage() {
   const ordersRef = useRef<OrderWithDetails[]>([])
   const router = useRouter()
   const supabase = createClient()
+  const { t } = useLanguage()
 
   useEffect(() => { ordersRef.current = orders }, [orders])
 
@@ -56,7 +58,7 @@ export default function DangChayPage() {
             const newOrderId = (payload.new as { id: string }).id
             loadOrders().then(data => {
               const newOrder = data?.find(o => o.id === newOrderId)
-              if (newOrder) showAlert(`Đơn mới — ${newOrder.table?.label ?? 'bàn đã xóa'}`)
+              if (newOrder) showAlert(`${t('Đơn mới', 'New order')} — ${newOrder.table?.label ?? t('bàn đã xóa', 'table deleted')}`)
             })
             return
           }
@@ -65,13 +67,13 @@ export default function DangChayPage() {
             const updated = payload.new as { id: string; status: string; needs_stock_confirmation: boolean }
             const previousOrder = ordersRef.current.find(o => o.id === updated.id)
             if (updated.status === 'ready' && previousOrder?.status === 'pending') {
-              showAlert(`Sẵn sàng giao — ${previousOrder.table?.label ?? 'bàn đã xóa'}`)
+              showAlert(`${t('Sẵn sàng giao', 'Ready for delivery')} — ${previousOrder.table?.label ?? t('bàn đã xóa', 'table deleted')}`)
             }
             // needs_stock_confirmation is left true by Kitchen's "Báo hết
             // hàng" specifically so this is distinguishable from FOH's own
             // ordinary cancel, which clears it via handleCancel below.
             if (updated.status === 'cancelled' && updated.needs_stock_confirmation && previousOrder) {
-              showAlert(`Hủy do hết hàng — ${previousOrder.table?.label ?? 'bàn đã xóa'}`, 'error')
+              showAlert(`${t('Hủy do hết hàng', 'Cancelled due to out of stock')} — ${previousOrder.table?.label ?? t('bàn đã xóa', 'table deleted')}`, 'error')
             }
           }
 
@@ -117,7 +119,7 @@ export default function DangChayPage() {
       <>
         <Toast message={alertMessage} tone={alertTone} />
         <p className="text-on-surface-variant text-center mt-16 text-label-vi">
-          Không có đơn nào đang chạy
+          {t('Không có đơn nào đang chạy', 'No active orders')}
         </p>
       </>
     )
