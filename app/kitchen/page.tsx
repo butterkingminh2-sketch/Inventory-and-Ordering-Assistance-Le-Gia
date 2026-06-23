@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { elapsedLabel } from '@/lib/order-urgency'
 import { groupAdjacentByTable } from '@/lib/order-grouping'
@@ -8,7 +8,7 @@ import { linesFromOrderItems, groupIdenticalLines } from '@/lib/order-lines'
 import { reverseOrderStock } from '@/lib/stock'
 import { Toast } from '@/components/toast'
 import { useLanguage } from '@/lib/language-context'
-import { pickName } from '@/lib/language'
+import { pickName, pickLabel } from '@/lib/language'
 import type { OrderWithDetails } from '@/lib/types'
 
 export default function KitchenPage() {
@@ -17,6 +17,13 @@ export default function KitchenPage() {
   const [newOrderAlert, setNewOrderAlert] = useState<string | null>(null)
   const supabase = createClient()
   const { t, language } = useLanguage()
+  const languageRef = useRef(language)
+
+  // Kept out of the main subscription effect's deps below — `t` from
+  // useLanguage() is a new function reference every render, and even this
+  // primitive `language` value must not retrigger the effect, since that
+  // would tear down and recreate the realtime channel on every toggle.
+  useEffect(() => { languageRef.current = language }, [language])
 
   useEffect(() => {
     async function init() {
@@ -56,7 +63,7 @@ export default function KitchenPage() {
             const newOrderId = (payload.new as { id: string }).id
             loadOrders(branchId).then(data => {
               const newOrder = data?.find(o => o.id === newOrderId)
-              setNewOrderAlert(`${t('Đơn mới', 'New order')} — ${newOrder?.table?.label ?? ''}`)
+              setNewOrderAlert(`${pickLabel(languageRef.current, 'Đơn mới', 'New order')} — ${newOrder?.table?.label ?? ''}`)
               setTimeout(() => setNewOrderAlert(null), 5000)
             })
           } else {
