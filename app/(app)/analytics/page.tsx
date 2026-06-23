@@ -21,10 +21,10 @@ interface OrderWithLines {
 
 type Preset = 'today' | '7d' | '30d'
 
-const PRESET_LABELS: Record<Preset, [string, string]> = {
-  today: ['Hôm nay', 'Today'],
-  '7d': ['7 ngày', '7 days'],
-  '30d': ['30 ngày', '30 days'],
+const PRESET_LABELS: Record<Preset, { vi: string; en: string }> = {
+  today: { vi: 'Hôm nay', en: 'Today' },
+  '7d': { vi: '7 ngày', en: '7 days' },
+  '30d': { vi: '30 ngày', en: '30 days' },
 }
 
 const URGENCY_THRESHOLD_DAYS = 3
@@ -117,7 +117,7 @@ export default function AnalyticsPage() {
   const alerts = getRestockAlerts(items, consumptionByItemId, daysInRange, URGENCY_THRESHOLD_DAYS)
 
   function handleNhanBep(alert: RestockAlert) {
-    setChatDraft(`${alert.item.name_vi} sẽ hết trong ${formatTimeRemaining(alert.daysRemaining, t)}`)
+    setChatDraft(`${pickName(alert.item, language)} sẽ hết trong ${formatTimeRemaining(alert.daysRemaining, t)}`)
   }
 
   return (
@@ -133,7 +133,7 @@ export default function AnalyticsPage() {
               preset === p ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
             }`}
           >
-            {t(...PRESET_LABELS[p])}
+            {t(PRESET_LABELS[p].vi, PRESET_LABELS[p].en)}
           </button>
         ))}
       </div>
