@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { CountBadge } from './count-badge'
+import { BilingualText } from '@/components/bilingual-text'
 import type { UserRole } from '@/lib/types'
 
 interface Tab {
@@ -90,8 +91,7 @@ export function SidebarNav({ role, readyCount }: Props) {
               {tab.icon}
             </span>
             <span className="flex-1">
-              <span className="block text-label-vi font-bold leading-tight">{tab.labelVi}</span>
-              <span className="block text-label-en leading-tight opacity-70">{tab.labelEn}</span>
+              <BilingualText vi={tab.labelVi} en={tab.labelEn} className="block text-label-vi font-bold leading-tight" />
             </span>
             {tab.badge != null && tab.badge > 0 && (
               <CountBadge
