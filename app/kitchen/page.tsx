@@ -183,7 +183,7 @@ export default function KitchenPage() {
                 <p className="text-headline-md font-bold text-on-surface">{order.table?.label ?? t('Bàn đã xóa', 'Table deleted')}</p>
                 <p className="text-label-en text-on-surface-variant flex items-center gap-1">
                   <span className="material-symbols-outlined text-[16px]" aria-hidden>schedule</span>
-                  {elapsedLabel(order.created_at)}
+                  {elapsedLabel(order.created_at, t)}
                 </p>
               </div>
 

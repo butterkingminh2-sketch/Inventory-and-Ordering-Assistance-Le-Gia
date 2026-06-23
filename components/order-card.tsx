@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { isUrgent, elapsedLabel } from '@/lib/order-urgency'
 import { linesFromOrderItems, groupIdenticalLines } from '@/lib/order-lines'
+import { useLanguage } from '@/lib/language-context'
 import type { OrderWithDetails } from '@/lib/types'
 
 interface Props {
@@ -17,6 +18,7 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder, onEdit }: Pro
   const urgent = order.status === 'ready' && isUrgent(order.ready_at)
   const prevStatusRef = useRef(order.status)
   const [justBecameReady, setJustBecameReady] = useState(false)
+  const { t } = useLanguage()
 
   useEffect(() => {
     if (prevStatusRef.current !== order.status) {
@@ -60,7 +62,7 @@ export function OrderCard({ order, onCancel, onDeliver, onReorder, onEdit }: Pro
           <span className="material-symbols-outlined text-[16px]" aria-hidden>
             {urgent ? 'warning' : 'schedule'}
           </span>
-          {urgent ? 'Quá hạn · ' : ''}{elapsedLabel(order.created_at)}
+          {urgent ? 'Quá hạn · ' : ''}{elapsedLabel(order.created_at, t)}
         </p>
 
         <ul className="space-y-1 pt-1">

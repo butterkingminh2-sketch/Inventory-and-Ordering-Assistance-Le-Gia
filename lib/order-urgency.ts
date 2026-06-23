@@ -5,9 +5,9 @@ export function isUrgent(readyAt: string | null): boolean {
   return Date.now() - new Date(readyAt).getTime() >= URGENCY_MS
 }
 
-export function elapsedLabel(createdAt: string): string {
+export function elapsedLabel(createdAt: string, t: (vi: string, en: string) => string): string {
   const ms = Date.now() - new Date(createdAt).getTime()
   const minutes = Math.floor(ms / 60_000)
-  if (minutes < 1) return 'vừa xong'
-  return `${minutes} phút trước`
+  if (minutes < 1) return t('vừa xong', 'just now')
+  return `${minutes} ${t('phút trước', 'min ago')}`
 }
