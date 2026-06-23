@@ -190,12 +190,12 @@ export default function KhoPage() {
         >
           <span className="material-symbols-outlined text-[20px]" aria-hidden>warning</span>
           <span className="text-label-vi font-bold">
-            {outCount > 0 && `${outCount} ${t('hết', 'out')}`}
+            {outCount > 0 && `${outCount} ${t('hết', 'out of stock')}`}
             {outCount > 0 && lowCount > 0 && ' · '}
-            {lowCount > 0 && `${lowCount} ${t('sắp hết', 'low')}`}
+            {lowCount > 0 && `${lowCount} ${t('sắp hết', 'low stock')}`}
           </span>
           <span className="text-label-en flex items-center gap-1">
-            {t(`${problemItems.length} nguyên liệu cần chú ý`, `${problemItems.length} ingredients need attention`)}
+            {t(`${problemItems.length} nguyên liệu cần chú ý`, `${problemItems.length} ${problemItems.length === 1 ? 'ingredient needs' : 'ingredients need'} attention`)}
             <span className="material-symbols-outlined text-[18px]" aria-hidden>arrow_upward</span>
           </span>
         </button>
