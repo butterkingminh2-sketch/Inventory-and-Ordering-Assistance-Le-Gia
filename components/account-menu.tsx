@@ -106,7 +106,7 @@ export function AccountMenu({ fullName, role, branchId, onBranchChange }: Props)
             <div className="flex rounded-lg border border-outline-variant overflow-hidden">
               <button
                 onClick={() => setLanguage('vi')}
-                className={`flex-1 py-1.5 text-label-vi font-bold transition-colors ${
+                className={`flex-1 py-1.5 min-h-touch-target-min text-label-vi font-bold transition-colors ${
                   language === 'vi' ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'
                 }`}
               >
@@ -114,7 +114,7 @@ export function AccountMenu({ fullName, role, branchId, onBranchChange }: Props)
               </button>
               <button
                 onClick={() => setLanguage('en')}
-                className={`flex-1 py-1.5 text-label-vi font-bold transition-colors ${
+                className={`flex-1 py-1.5 min-h-touch-target-min text-label-vi font-bold transition-colors ${
                   language === 'en' ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'
                 }`}
               >
