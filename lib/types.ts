@@ -1,6 +1,7 @@
 export type UserRole = 'foh' | 'kitchen' | 'manager' | 'register' | 'owner'
 export type OrderStatus = 'pending' | 'ready' | 'delivered' | 'cancelled'
 export type ItemUnit = 'g' | 'ml' | 'gói' | 'phần' | 'miếng' | 'bó' | 'viên' | 'chai' | 'quả' | 'lon' | 'nậm' | 'cái'
+export type Language = 'vi' | 'en'
 export const ITEM_UNITS: ItemUnit[] = ['g', 'ml', 'gói', 'phần', 'miếng', 'bó', 'viên', 'chai', 'quả', 'lon', 'nậm', 'cái']
 
 /** PostgREST serializes Postgres `numeric` columns as strings. Call parseFloat() or Number() before arithmetic. */
@@ -87,6 +88,7 @@ export interface UserProfile {
   branch_id: string
   role: UserRole
   full_name: string | null
+  language: Language
 }
 
 // Joined types used by UI
