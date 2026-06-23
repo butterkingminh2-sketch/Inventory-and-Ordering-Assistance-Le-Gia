@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/language-context'
+import { pickLabel } from '@/lib/language'
 
 interface OrderRow {
   id: string
@@ -21,6 +23,14 @@ export function useOrderAlerts(branchId: string | null) {
   const [message, setMessage] = useState<string | null>(null)
   const [tone, setTone] = useState<'info' | 'error'>('info')
   const knownStatus = useRef<Map<string, string>>(new Map())
+  const { language } = useLanguage()
+  const languageRef = useRef(language)
+
+  // Kept out of the main subscription effect's deps below — `t` from
+  // useLanguage() is a new function reference every render, and even this
+  // primitive `language` value must not retrigger the effect, since that
+  // would tear down and recreate the realtime channel on every toggle.
+  useEffect(() => { languageRef.current = language }, [language])
 
   useEffect(() => {
     if (!branchId) return
@@ -62,7 +72,7 @@ export function useOrderAlerts(branchId: string | null) {
           if (payload.eventType === 'INSERT') {
             knownStatus.current.set(row.id, row.status)
             const label = await lookupTableLabel(row.id)
-            if (label) showAlert(`Đơn mới — ${label}`)
+            if (label) showAlert(`${pickLabel(languageRef.current, 'Đơn mới', 'New order')} — ${label}`)
             return
           }
 
@@ -71,14 +81,14 @@ export function useOrderAlerts(branchId: string | null) {
             knownStatus.current.set(row.id, row.status)
             if (row.status === 'ready' && previousStatus === 'pending') {
               const label = await lookupTableLabel(row.id)
-              if (label) showAlert(`Sẵn sàng giao — ${label}`)
+              if (label) showAlert(`${pickLabel(languageRef.current, 'Sẵn sàng giao', 'Ready for delivery')} — ${label}`)
             }
             // needs_stock_confirmation is left true by Kitchen's "Báo hết
             // hàng" specifically so this is distinguishable from FOH's own
             // ordinary cancel (which already clears it, or never set it).
             if (row.status === 'cancelled' && row.needs_stock_confirmation && previousStatus !== 'cancelled') {
               const label = await lookupTableLabel(row.id)
-              if (label) showAlert(`Hủy do hết hàng — ${label}`, 'error')
+              if (label) showAlert(`${pickLabel(languageRef.current, 'Hủy do hết hàng', 'Cancelled due to out of stock')} — ${label}`, 'error')
             }
           }
         },
