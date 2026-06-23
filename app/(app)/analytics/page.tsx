@@ -8,6 +8,9 @@ import { calculateDecrements } from '@/lib/stock'
 import { getDateRangeStart, getPriorRangeStart, rankByQuantity, leastByQuantity, rankByRevenue, getRestockAlerts, getDailyRevenue, formatTimeRemaining } from '@/lib/analytics'
 import type { RestockAlert } from '@/lib/analytics'
 import { ChatPanel } from '@/components/chat-panel'
+import { BilingualText } from '@/components/bilingual-text'
+import { useLanguage } from '@/lib/language-context'
+import { pickName } from '@/lib/language'
 import { num } from '@/lib/types'
 import type { Dish, Item, RecipeLine, UserRole } from '@/lib/types'
 
@@ -18,10 +21,10 @@ interface OrderWithLines {
 
 type Preset = 'today' | '7d' | '30d'
 
-const PRESET_LABELS: Record<Preset, string> = {
-  today: 'Hôm nay',
-  '7d': '7 ngày',
-  '30d': '30 ngày',
+const PRESET_LABELS: Record<Preset, [string, string]> = {
+  today: ['Hôm nay', 'Today'],
+  '7d': ['7 ngày', '7 days'],
+  '30d': ['30 ngày', '30 days'],
 }
 
 const URGENCY_THRESHOLD_DAYS = 3
@@ -29,6 +32,7 @@ const TOP_N = 5
 
 export default function AnalyticsPage() {
   const { branchId } = useContext(BranchContext)
+  const { t, language } = useLanguage()
   const [preset, setPreset] = useState<Preset>('today')
   const [orders, setOrders] = useState<OrderWithLines[]>([])
   const [dishes, setDishes] = useState<Dish[]>([])
@@ -113,12 +117,12 @@ export default function AnalyticsPage() {
   const alerts = getRestockAlerts(items, consumptionByItemId, daysInRange, URGENCY_THRESHOLD_DAYS)
 
   function handleNhanBep(alert: RestockAlert) {
-    setChatDraft(`${alert.item.name_vi} sẽ hết trong ${formatTimeRemaining(alert.daysRemaining)}`)
+    setChatDraft(`${alert.item.name_vi} sẽ hết trong ${formatTimeRemaining(alert.daysRemaining, t)}`)
   }
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h2 className="text-headline-md font-bold text-on-surface mb-stack-lg">Thống kê</h2>
+      <h2 className="text-headline-md font-bold text-on-surface mb-stack-lg"><BilingualText vi="Thống kê" en="Analytics" /></h2>
 
       <div className="flex gap-2 mb-stack-lg">
         {(['today', '7d', '30d'] as Preset[]).map(p => (
@@ -129,23 +133,23 @@ export default function AnalyticsPage() {
               preset === p ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
             }`}
           >
-            {PRESET_LABELS[p]}
+            {t(...PRESET_LABELS[p])}
           </button>
         ))}
       </div>
 
       <div className="grid grid-cols-2 gap-stack-lg mb-stack-lg">
         <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg">
-          <p className="text-label-en text-on-surface-variant mb-1">Doanh thu</p>
+          <p className="text-label-en text-on-surface-variant mb-1"><BilingualText vi="Doanh thu" en="Revenue" /></p>
           <p className="text-headline-md font-black text-on-surface">{currentRevenue.toLocaleString('vi-VN')}đ</p>
           {percentChange !== null && (
             <p className={`text-label-en font-bold mt-1 ${percentChange >= 0 ? 'text-secondary' : 'text-error'}`}>
-              {percentChange >= 0 ? '↑' : '↓'} {Math.abs(percentChange).toFixed(0)}% so với kỳ trước
+              {percentChange >= 0 ? '↑' : '↓'} {Math.abs(percentChange).toFixed(0)}% {t('so với kỳ trước', 'vs. prior period')}
             </p>
           )}
         </div>
         <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg">
-          <p className="text-label-en text-on-surface-variant mb-1">Giá trị đơn trung bình</p>
+          <p className="text-label-en text-on-surface-variant mb-1"><BilingualText vi="Giá trị đơn trung bình" en="Average order value" /></p>
           <p className="text-headline-md font-black text-on-surface">{averageOrderValue.toLocaleString('vi-VN')}đ</p>
         </div>
       </div>
@@ -154,17 +158,17 @@ export default function AnalyticsPage() {
         <div className="rounded-xl border-2 border-error bg-error-container/20 p-stack-lg mb-stack-lg">
           <p className="text-label-vi font-bold text-error mb-stack-md flex items-center gap-1">
             <span className="material-symbols-outlined text-[18px]" aria-hidden>warning</span>
-            Cần nhập hàng sớm
+            <BilingualText vi="Cần nhập hàng sớm" en="Restock needed soon" />
           </p>
           <ul className="space-y-2">
             {alerts.map(a => (
               <li key={a.item.id} className="flex items-center justify-between gap-2">
                 <span className="text-label-vi text-on-surface">
-                  {a.item.name_vi} — còn {formatTimeRemaining(a.daysRemaining)}
+                  {pickName(a.item, language)} — {t('còn', 'remaining')} {formatTimeRemaining(a.daysRemaining, t)}
                 </span>
                 {role === 'manager' && (
                   <button onClick={() => handleNhanBep(a)} className="text-label-en font-bold text-error shrink-0">
-                    Nhắn bếp
+                    <BilingualText vi="Nhắn bếp" en="Message kitchen" />
                   </button>
                 )}
               </li>
@@ -175,9 +179,9 @@ export default function AnalyticsPage() {
 
       {preset !== 'today' && (
         <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg mb-stack-lg">
-          <p className="text-label-vi font-bold text-on-surface mb-stack-md">Doanh thu theo ngày</p>
+          <p className="text-label-vi font-bold text-on-surface mb-stack-md"><BilingualText vi="Doanh thu theo ngày" en="Revenue by day" /></p>
           {dailyRevenue.length === 0 ? (
-            <p className="text-label-en text-on-surface-variant">Chưa có đơn nào</p>
+            <p className="text-label-en text-on-surface-variant"><BilingualText vi="Chưa có đơn nào" en="No orders yet" /></p>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={dailyRevenue}>
@@ -193,14 +197,14 @@ export default function AnalyticsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-stack-lg">
         <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg">
-          <p className="text-label-vi font-bold text-on-surface mb-stack-md">Bán chạy (số lượng)</p>
+          <p className="text-label-vi font-bold text-on-surface mb-stack-md"><BilingualText vi="Bán chạy (số lượng)" en="Best sellers (quantity)" /></p>
           {topByQty.length === 0 ? (
-            <p className="text-label-en text-on-surface-variant">Chưa có đơn nào</p>
+            <p className="text-label-en text-on-surface-variant"><BilingualText vi="Chưa có đơn nào" en="No orders yet" /></p>
           ) : (
             <ul className="space-y-1">
               {topByQty.map(r => (
                 <li key={r.dish.id} className="flex justify-between text-label-vi text-on-surface">
-                  <span>{r.dish.name_vi}</span>
+                  <span>{pickName(r.dish, language)}</span>
                   <span className="font-bold text-primary">{r.qty}</span>
                 </li>
               ))}
@@ -209,14 +213,14 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg">
-          <p className="text-label-vi font-bold text-on-surface mb-stack-md">Bán chạy (doanh thu)</p>
+          <p className="text-label-vi font-bold text-on-surface mb-stack-md"><BilingualText vi="Bán chạy (doanh thu)" en="Best sellers (revenue)" /></p>
           {topByRevenue.length === 0 ? (
-            <p className="text-label-en text-on-surface-variant">Chưa có đơn nào</p>
+            <p className="text-label-en text-on-surface-variant"><BilingualText vi="Chưa có đơn nào" en="No orders yet" /></p>
           ) : (
             <ul className="space-y-1">
               {topByRevenue.map(r => (
                 <li key={r.dish.id} className="flex justify-between text-label-vi text-on-surface">
-                  <span>{r.dish.name_vi}</span>
+                  <span>{pickName(r.dish, language)}</span>
                   <span className="font-bold text-primary">{r.revenue.toLocaleString('vi-VN')}đ</span>
                 </li>
               ))}
@@ -225,14 +229,14 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-lg">
-          <p className="text-label-vi font-bold text-on-surface mb-stack-md">Bán ít nhất</p>
+          <p className="text-label-vi font-bold text-on-surface mb-stack-md"><BilingualText vi="Bán ít nhất" en="Least sold" /></p>
           {bottomByQty.length === 0 ? (
-            <p className="text-label-en text-on-surface-variant">Chưa có món nào</p>
+            <p className="text-label-en text-on-surface-variant"><BilingualText vi="Chưa có món nào" en="No dishes yet" /></p>
           ) : (
             <ul className="space-y-1">
               {bottomByQty.map(r => (
                 <li key={r.dish.id} className="flex justify-between text-label-vi text-on-surface">
-                  <span>{r.dish.name_vi}</span>
+                  <span>{pickName(r.dish, language)}</span>
                   <span className="font-bold text-tertiary">{r.qty}</span>
                 </li>
               ))}

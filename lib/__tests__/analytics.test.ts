@@ -115,24 +115,26 @@ describe('getDaysRemaining', () => {
   })
 })
 
+const t = (vi: string, en: string) => en // tests assert against English since that's what's being verified as wired correctly
+
 describe('formatTimeRemaining', () => {
   it('shows whole hours when under a day', () => {
-    expect(formatTimeRemaining(0.1)).toBe('~2 giờ')
-    expect(formatTimeRemaining(0.5)).toBe('~12 giờ')
+    expect(formatTimeRemaining(0.1, t)).toBe('~2 hr')
+    expect(formatTimeRemaining(0.5, t)).toBe('~12 hr')
   })
 
   it('shows under an hour in minutes', () => {
-    expect(formatTimeRemaining(0.02)).toBe('~29 phút')
+    expect(formatTimeRemaining(0.02, t)).toBe('~29 min')
   })
 
   it('shows one decimal of days once at or beyond a day', () => {
-    expect(formatTimeRemaining(1)).toBe('~1.0 ngày')
-    expect(formatTimeRemaining(2.5)).toBe('~2.5 ngày')
+    expect(formatTimeRemaining(1, t)).toBe('~1.0 days')
+    expect(formatTimeRemaining(2.5, t)).toBe('~2.5 days')
   })
 
-  it('floors negative/zero remaining time at "hết ngay"', () => {
-    expect(formatTimeRemaining(0)).toBe('hết ngay')
-    expect(formatTimeRemaining(-1)).toBe('hết ngay')
+  it('floors negative/zero remaining time at "gone now"', () => {
+    expect(formatTimeRemaining(0, t)).toBe('gone now')
+    expect(formatTimeRemaining(-1, t)).toBe('gone now')
   })
 })
 

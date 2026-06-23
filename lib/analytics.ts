@@ -120,16 +120,16 @@ export function getDaysRemaining(consumedInRange: number, daysInRange: number, c
  * switches to whole hours under a day, and minutes under an hour, instead
  * of a fractional day count that's technically correct but unreadable.
  */
-export function formatTimeRemaining(daysRemaining: number): string {
-  if (daysRemaining <= 0) return 'hết ngay'
+export function formatTimeRemaining(daysRemaining: number, t: (vi: string, en: string) => string): string {
+  if (daysRemaining <= 0) return t('hết ngay', 'gone now')
 
   if (daysRemaining < 1) {
     const hours = daysRemaining * 24
-    if (hours < 1) return `~${Math.round(hours * 60)} phút`
-    return `~${Math.round(hours)} giờ`
+    if (hours < 1) return `~${Math.round(hours * 60)} ${t('phút', 'min')}`
+    return `~${Math.round(hours)} ${t('giờ', 'hr')}`
   }
 
-  return `~${daysRemaining.toFixed(1)} ngày`
+  return `~${daysRemaining.toFixed(1)} ${t('ngày', 'days')}`
 }
 
 export interface RestockAlert {
