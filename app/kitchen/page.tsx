@@ -7,6 +7,8 @@ import { groupAdjacentByTable } from '@/lib/order-grouping'
 import { linesFromOrderItems, groupIdenticalLines } from '@/lib/order-lines'
 import { reverseOrderStock } from '@/lib/stock'
 import { Toast } from '@/components/toast'
+import { useLanguage } from '@/lib/language-context'
+import { pickName } from '@/lib/language'
 import type { OrderWithDetails } from '@/lib/types'
 
 export default function KitchenPage() {
@@ -14,6 +16,7 @@ export default function KitchenPage() {
   const [branchId, setBranchId] = useState<string | null>(null)
   const [newOrderAlert, setNewOrderAlert] = useState<string | null>(null)
   const supabase = createClient()
+  const { t, language } = useLanguage()
 
   useEffect(() => {
     async function init() {
@@ -53,7 +56,7 @@ export default function KitchenPage() {
             const newOrderId = (payload.new as { id: string }).id
             loadOrders(branchId).then(data => {
               const newOrder = data?.find(o => o.id === newOrderId)
-              setNewOrderAlert(`Đơn mới — ${newOrder?.table?.label ?? ''}`)
+              setNewOrderAlert(`${t('Đơn mới', 'New order')} — ${newOrder?.table?.label ?? ''}`)
               setTimeout(() => setNewOrderAlert(null), 5000)
             })
           } else {
@@ -81,7 +84,7 @@ export default function KitchenPage() {
   }
 
   async function handleOutOfStock(orderId: string) {
-    if (!window.confirm('Báo hết hàng và hủy đơn này? FOH sẽ được thông báo.')) return
+    if (!window.confirm(t('Báo hết hàng và hủy đơn này? FOH sẽ được thông báo.', 'Report out of stock and cancel this order? Front of house will be notified.'))) return
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -100,7 +103,7 @@ export default function KitchenPage() {
       <>
         <Toast message={newOrderAlert} tone="info" />
         <p className="text-on-surface-variant text-center mt-16 text-label-vi">
-          Không có đơn nào — Bếp rảnh 🎉
+          {t('Không có đơn nào — Bếp rảnh 🎉', 'No orders — kitchen is clear 🎉')}
         </p>
       </>
     )
@@ -122,7 +125,7 @@ export default function KitchenPage() {
           ''
         const marginCls = i === 0 ? '' : isAddOn ? 'mt-0' : 'mt-stack-lg'
 
-        const dishNames = new Map(order.order_items.map(oi => [oi.dish_id, oi.dish.name_vi]))
+        const dishNames = new Map(order.order_items.map(oi => [oi.dish_id, pickName(oi.dish, language)]))
         const groupedLines = groupIdenticalLines(linesFromOrderItems(order.order_items))
         const needsConfirmation = order.needs_stock_confirmation
 
@@ -132,7 +135,7 @@ export default function KitchenPage() {
         const wholeCardProps = needsConfirmation ? {} : {
           role: 'button' as const,
           tabIndex: 0,
-          'aria-label': `Đánh dấu xong — ${order.table?.label ?? 'bàn đã xóa'}${isAddOn ? ', đơn mới' : ''}`,
+          'aria-label': `${t('Đánh dấu xong', 'Mark done')} — ${order.table?.label ?? t('bàn đã xóa', 'table deleted')}${isAddOn ? `, ${t('đơn mới', 'new order')}` : ''}`,
           onClick: () => handleXong(order.id),
           onKeyDown: (e: React.KeyboardEvent) => {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleXong(order.id) }
@@ -153,12 +156,12 @@ export default function KitchenPage() {
               <div className="flex gap-2">
                 {isAddOn && (
                   <span className="inline-block bg-tertiary-fixed text-on-tertiary-fixed text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
-                    + Đơn mới
+                    + {t('Đơn mới', 'New order')}
                   </span>
                 )}
                 {needsConfirmation && (
                   <span className="inline-block bg-error-container text-on-error-container text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
-                    Thiếu tồn kho
+                    {t('Thiếu tồn kho', 'Stock shortage')}
                   </span>
                 )}
               </div>
@@ -170,14 +173,14 @@ export default function KitchenPage() {
                   onClick={e => { e.stopPropagation(); handleOutOfStock(order.id) }}
                   className="text-label-en font-bold text-error hover:underline shrink-0"
                 >
-                  Báo hết hàng
+                  {t('Báo hết hàng', 'Report out of stock')}
                 </button>
               )}
             </div>
 
             <div className="p-stack-lg space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-headline-md font-bold text-on-surface">{order.table?.label ?? 'Bàn đã xóa'}</p>
+                <p className="text-headline-md font-bold text-on-surface">{order.table?.label ?? t('Bàn đã xóa', 'Table deleted')}</p>
                 <p className="text-label-en text-on-surface-variant flex items-center gap-1">
                   <span className="material-symbols-outlined text-[16px]" aria-hidden>schedule</span>
                   {elapsedLabel(order.created_at)}
@@ -196,7 +199,7 @@ export default function KitchenPage() {
                             {dishNames.get(toppingId) ?? ''}{qty > 1 ? ` ×${qty}` : ''}
                           </span>
                         ))}
-                        {line.note && <span className="block text-label-en font-bold text-tertiary">Lưu ý: {line.note}</span>}
+                        {line.note && <span className="block text-label-en font-bold text-tertiary">{t('Lưu ý', 'Note')}: {line.note}</span>}
                       </span>
                       <span className="font-black text-primary">×{line.qty}</span>
                     </li>
@@ -212,20 +215,20 @@ export default function KitchenPage() {
                   className="flex-1 min-h-touch-target-min text-label-vi font-bold flex items-center justify-center gap-2 bg-secondary text-on-secondary active:scale-[0.98] transition-transform"
                 >
                   <span className="material-symbols-outlined text-[22px]" aria-hidden>inventory_2</span>
-                  Xác nhận còn hàng
+                  {t('Xác nhận còn hàng', 'Confirm in stock')}
                 </button>
                 <button
                   onClick={() => handleOutOfStock(order.id)}
                   className="flex-1 min-h-touch-target-min text-label-vi font-bold flex items-center justify-center gap-2 bg-error text-on-error active:scale-[0.98] transition-transform"
                 >
                   <span className="material-symbols-outlined text-[22px]" aria-hidden>cancel</span>
-                  Báo hết hàng
+                  {t('Báo hết hàng', 'Report out of stock')}
                 </button>
               </div>
             ) : (
               <div className="w-full min-h-touch-target-min text-label-vi font-bold flex items-center justify-center gap-2 bg-secondary text-on-secondary">
                 <span className="material-symbols-outlined text-[24px]" aria-hidden>check_circle</span>
-                Xong ✓ — chạm bất kỳ đâu trên thẻ
+                {t('Xong ✓ — chạm bất kỳ đâu trên thẻ', 'Done ✓ — tap anywhere on the card')}
               </div>
             )}
           </div>
