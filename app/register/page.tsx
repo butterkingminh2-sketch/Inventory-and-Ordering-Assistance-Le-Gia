@@ -116,7 +116,7 @@ export default function RegisterPage() {
   return (
     <div className="flex flex-col h-full">
       <h2 className="text-headline-md font-bold text-on-surface mb-stack-lg">
-        <BilingualText vi="Thu ngân" en="Register" />
+        <BilingualText vi="Thu ngân" en="Cashier" />
       </h2>
 
       {errorMsg && (
