@@ -38,7 +38,7 @@ export function SidebarNav({ role, readyCount }: Props) {
 
   if (role === 'manager') {
     tabs.push({ href: '/kitchen',  labelVi: 'Bếp',      labelEn: 'Kitchen',  icon: 'kitchen' })
-    tabs.push({ href: '/register', labelVi: 'Thu ngân', labelEn: 'Register', icon: 'point_of_sale' })
+    tabs.push({ href: '/register', labelVi: 'Thu ngân', labelEn: 'Cashier', icon: 'point_of_sale' })
     tabs.push({ href: '/settings', labelVi: 'Cài đặt', labelEn: 'Settings', icon: 'settings' })
   }
 

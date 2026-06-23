@@ -229,12 +229,12 @@ export default function RegisterPage() {
                 {selectedBill.items.map(item => (
                   <div key={item.id}>
                     <div className="flex justify-between">
-                      <span>{item.name_vi} x{item.qty}{item.comped ? ' (miễn phí)' : ''}</span>
+                      <span>{pickName(item, language)} x{item.qty}{item.comped ? ' (miễn phí)' : ''}</span>
                       <span>{item.comped ? '0' : item.lineTotal.toLocaleString('vi-VN')}</span>
                     </div>
                     {item.toppings.map(topping => (
                       <div key={topping.id} className="flex justify-between pl-3">
-                        <span>{topping.name_vi} x{topping.qty}{topping.comped ? ' (miễn phí)' : ''}</span>
+                        <span>{pickName(topping, language)} x{topping.qty}{topping.comped ? ' (miễn phí)' : ''}</span>
                         <span>{topping.comped ? '0' : topping.lineTotal.toLocaleString('vi-VN')}</span>
                       </div>
                     ))}
@@ -242,15 +242,15 @@ export default function RegisterPage() {
                 ))}
                 <hr className="border-dashed border-outline-variant my-2" />
                 <div className="flex justify-between font-bold text-[15px]">
-                  <span>TỔNG</span>
+                  <span>{t('TỔNG', 'TOTAL')}</span>
                   <span>{selectedBill.total.toLocaleString('vi-VN')}đ</span>
                 </div>
                 <div className="text-center mt-3">
                   <img src={qrUrl} alt="VietQR" width={160} height={160} className="mx-auto" />
-                  <p className="mt-1">Quét để chuyển khoản</p>
+                  <p className="mt-1">{t('Quét để chuyển khoản', 'Scan to transfer')}</p>
                   <p>{bank.accountName} - {bank.accountNo}</p>
                 </div>
-                <p className="text-center mt-3 text-on-surface-variant">Cảm ơn quý khách!</p>
+                <p className="text-center mt-3 text-on-surface-variant">{t('Cảm ơn quý khách!', 'Thank you!')}</p>
               </div>
             )}
 
