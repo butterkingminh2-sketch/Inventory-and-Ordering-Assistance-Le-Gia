@@ -178,8 +178,9 @@ export default function KitchenPage() {
               {!needsConfirmation && (
                 <button
                   onClick={e => { e.stopPropagation(); handleOutOfStock(order.id) }}
-                  className="text-label-en font-bold text-error hover:underline shrink-0"
+                  className="min-h-touch-target-min px-3 rounded-full flex items-center gap-1.5 text-label-en font-bold text-error bg-error-container active:scale-95 transition-all shrink-0"
                 >
+                  <span className="material-symbols-outlined text-[18px]" aria-hidden>report</span>
                   {t('Báo hết hàng', 'Report out of stock')}
                 </button>
               )}

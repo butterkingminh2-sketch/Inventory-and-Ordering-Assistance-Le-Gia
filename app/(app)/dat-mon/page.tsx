@@ -342,12 +342,12 @@ export default function DatMonPage() {
               <p className="text-label-en font-bold text-on-surface-variant uppercase mb-2">
                 <BilingualText vi={`Tầng ${group.floor}`} en={`Floor ${group.floor}`} />
               </p>
-              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {group.tables.map(tbl => (
                   <button
                     key={tbl.id}
                     onClick={() => { setSelectedTable(tbl.id); setStep('dishes') }}
-                    className="min-h-touch-target-min rounded-xl border-2 border-outline-variant bg-surface-container-lowest font-bold text-label-vi text-on-surface hover:border-primary hover:bg-primary-fixed active:scale-95 transition-all"
+                    className="aspect-square min-h-24 rounded-2xl border-2 border-outline-variant bg-surface-container-lowest font-bold text-headline-md text-on-surface hover:border-primary hover:bg-primary-fixed active:scale-95 transition-all"
                   >
                     {tbl.label}
                   </button>

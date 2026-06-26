@@ -118,7 +118,8 @@ export default function SettingsPage() {
     if (newDishImage) {
       try {
         image_url = await uploadDishImage(newDishImage)
-      } catch {
+      } catch (err) {
+        console.error('uploadDishImage failed:', err)
         alert(t('Không thể tải ảnh lên. Món ăn sẽ được lưu không có ảnh.', 'Could not upload the image. The dish will be saved without an image.'))
       }
     }
@@ -153,7 +154,8 @@ export default function SettingsPage() {
       const image_url = await uploadDishImage(file)
       await supabase.from('dishes').update({ image_url }).eq('id', id)
       setDishes(p => p.map(d => d.id === id ? { ...d, image_url } : d))
-    } catch {
+    } catch (err) {
+      console.error('uploadDishImage failed:', err)
       alert(t('Không thể tải ảnh lên. Vui lòng thử lại.', 'Could not upload the image. Please try again.'))
     }
   }
