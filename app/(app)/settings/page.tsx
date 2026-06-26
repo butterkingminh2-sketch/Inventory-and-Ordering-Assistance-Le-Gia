@@ -160,6 +160,20 @@ export default function SettingsPage() {
     }
   }
 
+  async function removeDishImage(id: string, imageUrl: string) {
+    // Public URLs look like .../storage/v1/object/public/dish-images/<path> —
+    // pull the path back out so the file in the bucket can be deleted too,
+    // not just the dishes.image_url reference to it.
+    const marker = '/dish-images/'
+    const markerIndex = imageUrl.indexOf(marker)
+    if (markerIndex !== -1) {
+      const path = imageUrl.slice(markerIndex + marker.length)
+      await supabase.storage.from('dish-images').remove([path])
+    }
+    await supabase.from('dishes').update({ image_url: null }).eq('id', id)
+    setDishes(p => p.map(d => d.id === id ? { ...d, image_url: null } : d))
+  }
+
   async function deactivateDish(id: string) {
     await supabase.from('dishes').update({ is_active: false }).eq('id', id)
     setDishes(p => p.map(d => d.id === id ? { ...d, is_active: false } : d))
@@ -392,6 +406,11 @@ export default function SettingsPage() {
                     <input type="file" accept="image/*" className="hidden"
                       onChange={e => { const f = e.target.files?.[0]; if (f) updateDishImage(dish.id, f) }} />
                   </label>
+                  {dish.image_url && (
+                    <button onClick={() => removeDishImage(dish.id, dish.image_url!)} className={btnDanger}>
+                      <BilingualText vi="Xóa ảnh" en="Remove image" />
+                    </button>
+                  )}
                   <label className="flex items-center gap-1 text-label-en text-on-surface-variant">
                     <input type="checkbox" checked={dish.is_topping}
                       onChange={e => updateDishIsTopping(dish.id, e.target.checked)} />
